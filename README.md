@@ -7,7 +7,7 @@ Oyunu C++ ile yazmazsın. Motor C++ ile çalışır; sen nesneleri sahneye koyar
 ## Neler var
 
 - 3D sahne: küp, küre, piramit, zemin ve **gerçek 3D karakter modelleri** (insan, hayvan, robot, hayalet, balık…)
-- 45+ karakter kütüphanesi; her karakter kutu/küre gruplarından oluşan 3D figür
+- 45 karakter kütüphanesi; her karakter kutu/küre gruplarından oluşan 3D figür
 - Kostüm / animasyon (3D poz) ve isteğe bağlı 2D boyama
 - Kodun yerini tutan geniş blok seti: olay, hareket, görünüm, ses, kontrol, algı, **işlemler** (+ − × ÷), değişken/liste, kalem, 3D/kamera
 - Oyunda **kamera açısı** (yaw / pitch / mesafe / FOV), hazır görünümler ve Q/E çevirme
