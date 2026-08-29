@@ -52,7 +52,31 @@ function createSoftwareViewport(canvas) {
   let frames = 0;
   let last = performance.now();
   let fps = 0;
+  let live = true;
+  img.onerror = () => {
+    live = false;
+    img.replaceWith(canvas);
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    const ctx = canvas.getContext("2d");
+    const draw = () => {
+      canvas.width = canvas.parentElement?.clientWidth || 640;
+      canvas.height = canvas.parentElement?.clientHeight || 360;
+      if (ctx) {
+        ctx.fillStyle = "#73b8f2";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#3d8a4a";
+        ctx.fillRect(0, canvas.height * 0.62, canvas.width, canvas.height * 0.38);
+        ctx.fillStyle = "#102018";
+        ctx.font = "14px Outfit, sans-serif";
+        ctx.fillText("3D görünüm için WebGL veya C++ sunucu gerekli", 16, 28);
+      }
+    };
+    draw();
+    window.addEventListener("resize", draw);
+  };
   const tick = () => {
+    if (!live) return;
     img.src = `api/frame.bmp?t=${Date.now()}`;
     frames += 1;
     const now = performance.now();
