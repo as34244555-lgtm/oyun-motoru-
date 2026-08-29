@@ -217,5 +217,9 @@ export async function exportAndroidProject(project) {
 }
 
 export function siteUrl() {
+  return "https://cdn.jsdelivr.net/gh/as34244555-lgtm/oyun-motoru-@gh-pages/index.html";
+}
+
+export function pagesUrl() {
   return "https://as34244555-lgtm.github.io/oyun-motoru-/";
 }

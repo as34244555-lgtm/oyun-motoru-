@@ -4,7 +4,7 @@ import { createBlockEditor } from "./blocks.js";
 import { BACKDROPS, CHARACTERS, characterCostumes, characterKindOf } from "./library.js";
 import { isometricThumb } from "./characters3d.js";
 import { openPaintEditor } from "./paint.js";
-import { exportAndroidProject, exportWebGame, siteUrl } from "./export.js";
+import { exportAndroidProject, exportWebGame, pagesUrl, siteUrl } from "./export.js";
 
 const NOTES = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88, C5: 523.25 };
 let audioCtx = null;
@@ -382,7 +382,8 @@ function publishDialog() {
         <button type="button" class="btn ghost" data-close>Kapat</button>
       </header>
       <div style="padding:16px;display:grid;gap:10px;max-width:640px">
-        <p>Kalıcı site (GitHub Pages): <a href="${siteUrl()}" target="_blank" rel="noreferrer">${siteUrl()}</a></p>
+        <p>Çalışan kalıcı site: <a href="${siteUrl()}" target="_blank" rel="noreferrer">${siteUrl()}</a></p>
+        <p>GitHub Pages (açılınca): <a href="${pagesUrl()}" target="_blank" rel="noreferrer">${pagesUrl()}</a></p>
         <p>Oyunu telefona almak için <b>APK / AAB</b> ile Android projesini indir. Android Studio’da <code>assembleRelease</code> APK, <code>bundleRelease</code> Play Store AAB üretir.</p>
         <div class="row">
           <button type="button" class="btn primary" id="dl-web">Web oyunu (.html)</button>

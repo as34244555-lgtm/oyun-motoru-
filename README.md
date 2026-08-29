@@ -85,7 +85,9 @@ API özeti: `/api/state`, `/api/objects`, `/api/scripts`, `/api/play`, `/api/sto
 
 Blok paletinde 120’den fazla işlem var. Karakter eklemek için **Kütüphane**; sahnenin sağ üstündeki **Oyun kamerası** kaydırıcılarıyla bakış açısını hem düzenlemede hem oyunda değiştir.
 
-Kalıcı site: https://as34244555-lgtm.github.io/oyun-motoru-/
+Kalıcı site (şimdi açık): https://cdn.jsdelivr.net/gh/as34244555-lgtm/oyun-motoru-@gh-pages/index.html
+
+GitHub Pages: https://as34244555-lgtm.github.io/oyun-motoru-/ — repo Settings → Pages → Source: GitHub Actions veya `gh-pages` dalı.
 
 **Web oyunu** tek HTML indirir. **APK / AAB** Android projesini zip’ler (`assembleRelease` → APK, `bundleRelease` → Play Store AAB). GitHub Actions da debug APK/AAB üretir.
 
