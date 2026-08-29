@@ -36,12 +36,13 @@ Başsız kare (CI / test):
 
 ## Editörde oyun yazmak
 
-1. Sağ alttan bir kukla seç (örnek: **Kedi**).
-2. Soldan **Olaylar** → **Her kare** bloğunu ekle.
+1. **Kütüphane** veya kukla **+** ile bir karakter ekle.
+2. Kuklayı seç, soldan **Olaylar** → **Her kare** bloğunu ekle.
 3. **Hareket** kategorisinden **döndür** veya **zıpla** tıkla.
 4. `eğer` bloğunda tuşu `Space` yap, içine `zıpla` koy.
-5. Yeşil bayrak — Space ile zıpla, ok tuşlarıyla örnek küreyi hareket ettir.
-6. Kırmızı durdur sahneyi başlangıca alır.
+5. Yeşil bayrak ile dene. Kırmızı işaret durdurur.
+
+Açılışta sahne ve kod alanı boştur; kukla ve blokları sen eklersin.
 
 Bloklar C++ sanal makinesinde çalışır. Sağ alttaki küçük görüntü motorun kendi yazılım renderer çıktısıdır.
 

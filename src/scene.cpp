@@ -393,40 +393,6 @@ Scene Scene::makeDefault() {
     ground.color = {0.28f, 0.42f, 0.34f};
     ground.dynamic = false;
     scene.objects.push_back(ground);
-
-    GameObject cube;
-    cube.id = "cube";
-    cube.name = "Kup";
-    cube.mesh = MeshType::Cube;
-    cube.transform.position = {0, 0.5f, 0};
-    cube.color = {0.93f, 0.33f, 0.22f};
-    scene.objects.push_back(cube);
-
-    GameObject sphere;
-    sphere.id = "sphere";
-    sphere.name = "Kure";
-    sphere.mesh = MeshType::Sphere;
-    sphere.transform.position = {2.4f, 0.5f, 0.2f};
-    sphere.color = {0.22f, 0.62f, 0.95f};
-    scene.objects.push_back(sphere);
-
-    GameObject pyramid;
-    pyramid.id = "pyramid";
-    pyramid.name = "Piramit";
-    pyramid.mesh = MeshType::Pyramid;
-    pyramid.transform.position = {-2.3f, 0.5f, -0.4f};
-    pyramid.color = {0.98f, 0.78f, 0.22f};
-    scene.objects.push_back(pyramid);
-
-    GameObject cat;
-    cat.id = "cat";
-    cat.name = "Kedi";
-    cat.mesh = MeshType::Character;
-    cat.catalogId = "kedi";
-    cat.transform.position = {0.8f, 0.55f, 1.6f};
-    cat.color = {0.96f, 0.62f, 0.28f};
-    cat.costumes = {{"dur", ""}, {"adim1", ""}, {"adim2", ""}};
-    scene.objects.push_back(cat);
     scene.applyBackdrop("cayir");
 
     return scene;

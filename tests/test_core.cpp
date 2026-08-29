@@ -62,12 +62,13 @@ int main() {
 
     {
         Scene scene = Scene::makeDefault();
-        CHECK(scene.find("cube") != nullptr);
+        CHECK(scene.find("cube") == nullptr);
+        CHECK(scene.find("cat") == nullptr);
         CHECK(scene.findByName("Zemin") != nullptr);
         const Json snap = scene.toJson();
         Scene copy = Scene::fromJson(snap);
         CHECK(copy.objects.size() == scene.objects.size());
-        CHECK(copy.find("sphere") != nullptr);
+        CHECK(copy.find("ground") != nullptr);
     }
 
     {
@@ -162,13 +163,10 @@ int main() {
 
     {
         Engine engine;
-        CHECK(engine.sceneJson()["objects"].size() >= 3);
+        CHECK(engine.sceneJson()["objects"].size() == 1);
+        CHECK(engine.scriptsJson()["scripts"].size() == 0);
         engine.play();
         CHECK(engine.playing());
-        engine.setKeys({"Space"});
-        for (int i = 0; i < 8; ++i) engine.tick(1.0f / 30.0f);
-        const float y = engine.stateJson()["objects"].arrayItems()[1]["position"]["y"].asFloat();
-        CHECK(y > 0.5f);
         engine.stop();
         CHECK(!engine.playing());
     }

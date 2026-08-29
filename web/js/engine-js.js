@@ -48,10 +48,6 @@ function makeDefault() {
   return {
     objects: [
       { id: "ground", name: "Zemin", mesh: "plane", position: vec(0, 0, 0), rotation: vec(), scale: vec(14, 1, 14), color: hexToRgb("#476b57"), velocity: vec(), visible: true, dynamic: false, grounded: true, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
-      { id: "cube", name: "Kup", mesh: "cube", position: vec(0, 0.5, 0), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#ed5438"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
-      { id: "sphere", name: "Kure", mesh: "sphere", position: vec(2.4, 0.5, 0.2), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#389ef2"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
-      { id: "pyramid", name: "Piramit", mesh: "pyramid", position: vec(-2.3, 0.5, -0.4), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#fac738"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
-      { id: "cat", name: "Kedi", mesh: "character", position: vec(0.8, 0.55, 1.6), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#f59e48"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "kedi", costumes: characterCostumes("kedi"), costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 8, animClip: "idle", isClone: false },
     ],
     camera,
     gravity: -20,
@@ -66,29 +62,7 @@ function makeDefault() {
 }
 
 function defaultScripts() {
-  return {
-    scripts: [
-      { target: "cube", hat: { op: "every_frame", args: {} }, stack: [{ op: "rotate", args: { axis: "y", degrees: "80" } }] },
-      { target: "cube", hat: { op: "every_frame", args: {} }, stack: [{ op: "if", cond: { op: "key_down", args: { key: "Space" } }, then: [{ op: "jump", args: { force: "8" } }] }] },
-      { target: "sphere", hat: { op: "every_frame", args: {} }, stack: [
-        { op: "if", cond: { op: "key_down", args: { key: "ArrowLeft" } }, then: [{ op: "change_position", args: { x: "-0.08", y: "0", z: "0" } }] },
-        { op: "if", cond: { op: "key_down", args: { key: "ArrowRight" } }, then: [{ op: "change_position", args: { x: "0.08", y: "0", z: "0" } }] },
-        { op: "if", cond: { op: "key_down", args: { key: "ArrowUp" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "-0.08" } }] },
-        { op: "if", cond: { op: "key_down", args: { key: "ArrowDown" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "0.08" } }] },
-      ] },
-      { target: "cat", hat: { op: "when_start", args: {} }, stack: [
-        { op: "start_anim", args: { fps: "8" } },
-        { op: "say", args: { text: "Merhaba! Ben 3D Kedi.", seconds: "3" } },
-        { op: "camera_follow", args: { name: "cat" } },
-      ] },
-      { target: "cat", hat: { op: "every_frame", args: {} }, stack: [
-        { op: "if", cond: { op: "key_down", args: { key: "KeyA" } }, then: [{ op: "change_position", args: { x: "-0.07", y: "0", z: "0" } }] },
-        { op: "if", cond: { op: "key_down", args: { key: "KeyD" } }, then: [{ op: "change_position", args: { x: "0.07", y: "0", z: "0" } }] },
-        { op: "if", cond: { op: "key_down", args: { key: "KeyW" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "-0.07" } }] },
-        { op: "if", cond: { op: "key_down", args: { key: "KeyS" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "0.07" } }] },
-      ] },
-    ],
-  };
+  return { scripts: [] };
 }
 
 function arg(block, key, fallback = "") {

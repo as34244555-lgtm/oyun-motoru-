@@ -62,8 +62,15 @@ const blocks = createBlockEditor({
   },
 });
 
+function isPlayable(object) {
+  return object && object.mesh !== "plane" && object.id !== "ground";
+}
+
 function selected() {
-  return (state.objects || []).find((o) => o.id === selectedId) || state.objects?.[0];
+  const objects = state.objects || [];
+  const found = objects.find((o) => o.id === selectedId);
+  if (isPlayable(found)) return found;
+  return objects.find(isPlayable) || null;
 }
 
 function renderHierarchy() {
@@ -310,17 +317,18 @@ function selectObject(id) {
 
 async function refresh() {
   state = await api.state();
-  const objects = state.objects || [];
-  if (!selectedId && objects.length) {
-    selectedId = (objects.find((o) => o.id === "cat") || objects.find((o) => o.id === "cube") || objects.find((o) => o.mesh !== "plane") || objects[0]).id;
-  }
-  if (selectedId && !objects.some((o) => o.id === selectedId) && objects.length) {
-    selectedId = objects[0].id;
+  const objects = (state.objects || []).filter(isPlayable);
+  if (!selectedId && objects.length) selectedId = objects[0].id;
+  if (selectedId && !objects.some((o) => o.id === selectedId)) {
+    selectedId = objects[0]?.id || "";
   }
   const object = selected();
   if (object) {
     scriptTarget.textContent = object.name;
     blocks.setTarget(object.id);
+  } else {
+    scriptTarget.textContent = "—";
+    blocks.setTarget("");
   }
   viewport.sync(state);
   renderHierarchy();
