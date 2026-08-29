@@ -190,7 +190,7 @@ Scene Scene::makeDefault() {
     ground.mesh = MeshType::Plane;
     ground.transform.position = {0, 0, 0};
     ground.transform.scale = {14, 1, 14};
-    ground.color = {0.20f, 0.32f, 0.26f};
+    ground.color = {0.28f, 0.42f, 0.34f};
     ground.dynamic = false;
     scene.objects.push_back(ground);
 

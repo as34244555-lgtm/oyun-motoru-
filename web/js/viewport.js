@@ -30,7 +30,47 @@ function makeMesh(object) {
   return mesh;
 }
 
+function createSoftwareViewport(canvas) {
+  const img = document.createElement("img");
+  img.alt = "C++ yazılım renderer";
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.objectFit = "cover";
+  img.style.display = "block";
+  img.id = canvas.id || "view";
+  canvas.replaceWith(img);
+  let frames = 0;
+  let last = performance.now();
+  let fps = 0;
+  const tick = () => {
+    img.src = `/api/frame.bmp?t=${Date.now()}`;
+    frames += 1;
+    const now = performance.now();
+    if (now - last > 500) {
+      fps = Math.round((frames * 1000) / (now - last));
+      frames = 0;
+      last = now;
+    }
+  };
+  tick();
+  setInterval(tick, 140);
+  return {
+    sync() {},
+    fps: () => fps,
+    software: true,
+  };
+}
+
 export function createViewport(canvas) {
+  try {
+    return createWebGLViewport(canvas);
+  } catch (err) {
+    console.warn("WebGL yok, C++ yazılım renderer kullanılıyor", err);
+    return createSoftwareViewport(canvas);
+  }
+}
+
+function createWebGLViewport(canvas) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0d1218);
   scene.fog = new THREE.Fog(0x0d1218, 18, 42);

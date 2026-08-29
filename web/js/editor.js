@@ -14,6 +14,10 @@ const btnStop = document.getElementById("btn-stop");
 const cpuFrame = document.getElementById("cpu-frame");
 
 const viewport = createViewport(document.getElementById("view"));
+if (viewport.software) {
+  const preview = document.querySelector(".engine-preview");
+  if (preview) preview.style.display = "none";
+}
 const keys = new Set();
 let state = { objects: [], playing: false };
 let selectedId = "";
@@ -51,13 +55,7 @@ function renderHierarchy() {
     kind.className = "kind";
     kind.textContent = object.mesh;
     item.append(swatch, name, kind);
-    item.addEventListener("click", () => {
-      selectedId = object.id;
-      scriptTarget.textContent = object.name;
-      blocks.setTarget(object.id);
-      renderHierarchy();
-      renderInspector();
-    });
+    item.addEventListener("click", () => selectObject(object.id));
     hierarchyEl.appendChild(item);
   }
   statusCount.textContent = String(state.objects?.length || 0);
@@ -155,11 +153,25 @@ function setPlaying(playing) {
   statusMode.textContent = playing ? "Oynatılıyor" : "Düzenleme";
 }
 
+function selectObject(id) {
+  selectedId = id;
+  const object = selected();
+  if (object) {
+    scriptTarget.textContent = object.name;
+    blocks.setTarget(object.id);
+  }
+  renderHierarchy();
+  renderInspector();
+}
+
 async function refresh() {
   state = await api.state();
-  if (!selectedId && state.objects?.length) selectedId = state.objects[0].id;
-  if (selectedId && !(state.objects || []).some((o) => o.id === selectedId) && state.objects?.length) {
-    selectedId = state.objects[0].id;
+  const objects = state.objects || [];
+  if (!selectedId && objects.length) {
+    selectedId = (objects.find((o) => o.id === "cube") || objects[0]).id;
+  }
+  if (selectedId && !objects.some((o) => o.id === selectedId) && objects.length) {
+    selectedId = objects[0].id;
   }
   const object = selected();
   if (object) {
@@ -214,6 +226,7 @@ setInterval(async () => {
       state = await api.state();
       viewport.sync(state);
       statusCount.textContent = String(state.objects?.length || 0);
+      if (selected()) renderInspector();
     } catch (_) {
       /* keep editor alive */
     }
@@ -221,21 +234,16 @@ setInterval(async () => {
   statusFps.textContent = String(viewport.fps());
 }, 50);
 
-setInterval(() => {
-  cpuFrame.src = `/api/frame.bmp?t=${Date.now()}`;
-}, 700);
+if (cpuFrame && !viewport.software) {
+  setInterval(() => {
+    cpuFrame.src = `/api/frame.bmp?t=${Date.now()}`;
+  }, 700);
+}
 
 async function boot() {
   const scripts = await api.scripts();
   blocks.load(scripts);
   await refresh();
-  if (state.objects?.length) {
-    const cube = state.objects.find((o) => o.id === "cube") || state.objects[0];
-    selectedId = cube.id;
-    blocks.setTarget(cube.id);
-    renderHierarchy();
-    renderInspector();
-  }
 }
 
 boot().catch((err) => {
