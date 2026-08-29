@@ -1,26 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { backdropStyle, costumeImage } from "./library.js";
-
-const loader = new THREE.TextureLoader();
-const texCache = new Map();
-
-function textureOf(url) {
-  if (!url) return null;
-  if (texCache.has(url)) return texCache.get(url);
-  const tex = loader.load(url);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  texCache.set(url, tex);
-  return tex;
-}
-
-function costumeUrl(object) {
-  const costumes = object.costumes || [];
-  const item = costumes[object.costumeIndex || 0];
-  if (item?.image) return item.image;
-  if (object.catalogId) return costumeImage(object.catalogId, object.costumeIndex || 0);
-  return "";
-}
+import { backdropStyle } from "./library.js";
+import { makeCharacter3D, poseCharacter } from "./characters3d.js";
 
 function hexColor(color) {
   if (!color) return 0xcccccc;
@@ -29,14 +10,18 @@ function hexColor(color) {
 }
 
 function makeMesh(object) {
-  const url = costumeUrl(object);
+  if (object.mesh === "character" || object.mesh === "sprite" || object.catalogId) {
+    const group = makeCharacter3D(object);
+    group.userData.id = object.id;
+    group.userData.isCharacter = true;
+    return group;
+  }
   const mat = new THREE.MeshStandardMaterial({
-    color: url ? 0xffffff : hexColor(object.color),
+    color: hexColor(object.color),
     roughness: 0.42,
     metalness: 0.08,
     transparent: true,
     opacity: object.opacity ?? 1,
-    map: textureOf(url) || null,
   });
   let mesh;
   if (object.mesh === "sphere") mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 28, 18), mat);
@@ -45,13 +30,8 @@ function makeMesh(object) {
     mesh.rotation.x = -Math.PI / 2;
     mat.side = THREE.DoubleSide;
   } else if (object.mesh === "pyramid") mesh = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1, 4), mat);
-  else if (object.mesh === "sprite") {
-    mat.side = THREE.DoubleSide;
-    mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.4), mat);
-    mesh.userData.billboard = true;
-  } else if (object.mesh === "character" || object.mesh === "capsule") {
-    mesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 6, 10), mat);
-  } else mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
+  else if (object.mesh === "capsule") mesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 6, 10), mat);
+  else mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
 
   mesh.castShadow = object.mesh !== "plane";
   mesh.receiveShadow = true;
@@ -129,6 +109,13 @@ function createWebGLViewport(canvas) {
   scene.add(grid);
 
   const meshes = new Map();
+  let controlsDragging = false;
+  controls.addEventListener("start", () => {
+    controlsDragging = true;
+  });
+  controls.addEventListener("end", () => {
+    controlsDragging = false;
+  });
 
   function resize() {
     const parent = canvas.parentElement;
@@ -147,7 +134,7 @@ function createWebGLViewport(canvas) {
     for (const object of state.objects || []) {
       seen.add(object.id);
       let mesh = meshes.get(object.id);
-      const costumeKey = `${object.mesh}|${object.catalogId}|${object.costumeIndex}|${(object.costumes || [])[object.costumeIndex || 0]?.image || ""}`;
+      const costumeKey = `${object.mesh}|${object.catalogId}|${object.color?.hex || ""}`;
       if (!mesh || mesh.userData.mesh !== object.mesh || mesh.userData.costumeKey !== costumeKey) {
         if (mesh) scene.remove(mesh);
         mesh = makeMesh(object);
@@ -158,7 +145,7 @@ function createWebGLViewport(canvas) {
       }
       mesh.visible = object.visible !== false;
       mesh.position.set(object.position.x, object.position.y, object.position.z);
-      if (object.mesh !== "plane" && !mesh.userData.billboard) {
+      if (object.mesh !== "plane") {
         mesh.rotation.set(
           THREE.MathUtils.degToRad(object.rotation.x),
           THREE.MathUtils.degToRad(object.rotation.y),
@@ -167,15 +154,33 @@ function createWebGLViewport(canvas) {
       }
       const s = Math.max(0.15, (object.size || 100) / 100);
       mesh.scale.set(object.scale.x * s, object.scale.y * s, object.scale.z * s);
+      if (mesh.userData.isCharacter) poseCharacter(mesh, object);
       if (mesh.material) {
         mesh.material.opacity = object.opacity ?? 1;
-        if (!mesh.material.map) mesh.material.color.setHex(hexColor(object.color?.hex || object.color));
+        mesh.material.color.setHex(hexColor(object.color?.hex || object.color));
       }
     }
     for (const [id, mesh] of meshes) {
       if (!seen.has(id)) {
         scene.remove(mesh);
         meshes.delete(id);
+      }
+    }
+    applyGameCamera(state);
+  }
+
+  function applyGameCamera(state) {
+    const cam = state.camera;
+    if (!cam) return;
+    if (state.playing) controls.enabled = false;
+    else controls.enabled = true;
+    if (state.playing || !controlsDragging) {
+      camera.fov = cam.fov || 50;
+      camera.updateProjectionMatrix();
+      if (cam.position) camera.position.set(cam.position.x, cam.position.y, cam.position.z);
+      if (cam.target) {
+        camera.lookAt(cam.target.x, cam.target.y, cam.target.z);
+        controls.target.set(cam.target.x, cam.target.y, cam.target.z);
       }
     }
   }
@@ -186,9 +191,6 @@ function createWebGLViewport(canvas) {
   function tick() {
     resize();
     controls.update();
-    for (const mesh of meshes.values()) {
-      if (mesh.userData.billboard) mesh.lookAt(camera.position);
-    }
     renderer.render(scene, camera);
     frames += 1;
     const now = performance.now();

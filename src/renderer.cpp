@@ -85,6 +85,62 @@ std::vector<Triangle> makeCapsule() {
     return t;
 }
 
+std::vector<Triangle> makeQuadruped() {
+    std::vector<Triangle> t;
+    auto box = [&](Vec3 c, Vec3 s) {
+        const Vec3 h = s * 0.5f;
+        const Vec3 p000{c.x - h.x, c.y - h.y, c.z - h.z};
+        const Vec3 p100{c.x + h.x, c.y - h.y, c.z - h.z};
+        const Vec3 p110{c.x + h.x, c.y + h.y, c.z - h.z};
+        const Vec3 p010{c.x - h.x, c.y + h.y, c.z - h.z};
+        const Vec3 p001{c.x - h.x, c.y - h.y, c.z + h.z};
+        const Vec3 p101{c.x + h.x, c.y - h.y, c.z + h.z};
+        const Vec3 p111{c.x + h.x, c.y + h.y, c.z + h.z};
+        const Vec3 p011{c.x - h.x, c.y + h.y, c.z + h.z};
+        addQuad(t, p001, p101, p111, p011, {0, 0, 1});
+        addQuad(t, p100, p000, p010, p110, {0, 0, -1});
+        addQuad(t, p000, p001, p011, p010, {-1, 0, 0});
+        addQuad(t, p101, p100, p110, p111, {1, 0, 0});
+        addQuad(t, p011, p111, p110, p010, {0, 1, 0});
+        addQuad(t, p000, p100, p101, p001, {0, -1, 0});
+    };
+    box({0, 0.08f, 0}, {0.55f, 0.28f, 0.32f});
+    box({0.28f, 0.20f, 0}, {0.24f, 0.22f, 0.24f});
+    box({-0.18f, -0.18f, 0.12f}, {0.10f, 0.28f, 0.10f});
+    box({-0.18f, -0.18f, -0.12f}, {0.10f, 0.28f, 0.10f});
+    box({0.16f, -0.18f, 0.12f}, {0.10f, 0.28f, 0.10f});
+    box({0.16f, -0.18f, -0.12f}, {0.10f, 0.28f, 0.10f});
+    box({-0.30f, 0.12f, 0}, {0.16f, 0.08f, 0.08f});
+    return t;
+}
+
+std::vector<Triangle> makeFlyer() {
+    std::vector<Triangle> t;
+    auto box = [&](Vec3 c, Vec3 s) {
+        const Vec3 h = s * 0.5f;
+        const Vec3 p000{c.x - h.x, c.y - h.y, c.z - h.z};
+        const Vec3 p100{c.x + h.x, c.y - h.y, c.z - h.z};
+        const Vec3 p110{c.x + h.x, c.y + h.y, c.z - h.z};
+        const Vec3 p010{c.x - h.x, c.y + h.y, c.z - h.z};
+        const Vec3 p001{c.x - h.x, c.y - h.y, c.z + h.z};
+        const Vec3 p101{c.x + h.x, c.y - h.y, c.z + h.z};
+        const Vec3 p111{c.x + h.x, c.y + h.y, c.z + h.z};
+        const Vec3 p011{c.x - h.x, c.y + h.y, c.z + h.z};
+        addQuad(t, p001, p101, p111, p011, {0, 0, 1});
+        addQuad(t, p100, p000, p010, p110, {0, 0, -1});
+        addQuad(t, p000, p001, p011, p010, {-1, 0, 0});
+        addQuad(t, p101, p100, p110, p111, {1, 0, 0});
+        addQuad(t, p011, p111, p110, p010, {0, 1, 0});
+        addQuad(t, p000, p100, p101, p001, {0, -1, 0});
+    };
+    box({0, 0.12f, 0}, {0.28f, 0.22f, 0.36f});
+    box({0, 0.28f, 0.12f}, {0.20f, 0.18f, 0.20f});
+    box({-0.34f, 0.16f, 0}, {0.42f, 0.06f, 0.22f});
+    box({0.34f, 0.16f, 0}, {0.42f, 0.06f, 0.22f});
+    box({0, 0.02f, -0.22f}, {0.08f, 0.08f, 0.20f});
+    return t;
+}
+
 std::vector<Triangle> makeCharacter() {
     std::vector<Triangle> t;
     auto box = [&](Vec3 c, Vec3 s) {
@@ -166,6 +222,21 @@ const std::vector<Triangle>& meshOf(MeshType type) {
     }
 }
 
+const std::vector<Triangle>& meshOfObject(const GameObject& object) {
+    if (object.mesh == MeshType::Character || object.mesh == MeshType::Sprite) {
+        const std::string kind = characterKindOf(object.catalogId);
+        static const auto character = makeCharacter();
+        static const auto quadruped = makeQuadruped();
+        static const auto flyer = makeFlyer();
+        static const auto round = makeSphere();
+        if (kind == "quadruped") return quadruped;
+        if (kind == "flyer") return flyer;
+        if (kind == "round") return round;
+        return character;
+    }
+    return meshOf(object.mesh);
+}
+
 struct ScreenVert {
     float x = 0;
     float y = 0;
@@ -234,7 +305,7 @@ Image SoftwareRenderer::render(const Scene& scene) const {
                            Mat4::scale({object.transform.scale.x * s, object.transform.scale.y * s,
                                         object.transform.scale.z * s});
         const Mat4 mvp = vp * model;
-        for (const auto& tri : meshOf(object.mesh)) {
+        for (const auto& tri : meshOfObject(object)) {
             ScreenVert sv[3];
             bool ok = true;
             Vertex world[3];

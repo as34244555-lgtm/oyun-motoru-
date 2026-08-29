@@ -29,6 +29,7 @@ public:
     Json projectJson() const;
     bool loadProject(const Json& json, std::string& error);
     bool setBackdrop(const std::string& id);
+    bool updateCamera(const Json& patch, std::string& error);
 
     void play();
     void stop();

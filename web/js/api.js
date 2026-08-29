@@ -34,4 +34,5 @@ export const api = {
   loadProject: (payload) => request("/api/project", { method: "PUT", body: JSON.stringify(payload) }),
   setBackdrop: (id) => request("/api/backdrop", { method: "POST", body: JSON.stringify({ id }) }),
   cloneObject: (id) => request(`/api/clone/${id}`, { method: "POST", body: "{}" }),
+  updateCamera: (patch) => request("/api/camera", { method: "PATCH", body: JSON.stringify(patch) }),
 };

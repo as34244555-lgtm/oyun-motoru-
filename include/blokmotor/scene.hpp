@@ -84,10 +84,17 @@ struct GameObject {
 };
 
 struct Camera {
-    Vec3 position{5.4f, 3.6f, 5.8f};
-    Vec3 target{0.2f, 0.45f, 0.0f};
+    Vec3 position{6.2f, 4.2f, 6.6f};
+    Vec3 target{0.2f, 0.5f, 0.0f};
     float fov = 50.0f;
+    float yaw = 45.0f;
+    float pitch = 28.0f;
+    float distance = 9.2f;
+    std::string follow;
+    void refreshOrbit();
 };
+
+const char* characterKindOf(const std::string& catalogId);
 
 class Scene {
 public:

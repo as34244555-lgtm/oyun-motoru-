@@ -117,6 +117,16 @@ export const BACKDROPS = [
   { id: "dag", name: "Dağ", sky: "#6688ad", ground: "#3e5870" },
 ];
 
+export function characterKindOf(id) {
+  const quads = ["kedi", "kopek", "tavsan", "ayi", "tilki", "dinozor", "kurbaga", "karinca"];
+  const fly = ["kus", "kelebek", "ari", "melek", "peri", "ejderha", "yarasa", "penguen", "baykus"];
+  const round = ["top", "kabak", "yildiz", "balik"];
+  if (quads.includes(id)) return "quadruped";
+  if (fly.includes(id)) return "flyer";
+  if (round.includes(id)) return "round";
+  return "humanoid";
+}
+
 export function costumeImage(id, frame = 0) {
   const ch = CHARACTERS.find((c) => c.id === id) || CHARACTERS[0];
   return creatureSvg({ hue: ch.hue, kind: ch.kind, frame, name: ch.name });

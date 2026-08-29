@@ -1,6 +1,7 @@
 #include "blokmotor/scene.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <sstream>
 
@@ -71,6 +72,32 @@ std::string Color::toHex() const {
                   static_cast<int>(clampf(g, 0, 1) * 255.0f + 0.5f),
                   static_cast<int>(clampf(b, 0, 1) * 255.0f + 0.5f));
     return buf;
+}
+
+void Camera::refreshOrbit() {
+    pitch = clampf(pitch, -80.0f, 80.0f);
+    distance = std::max(1.2f, distance);
+    const float pr = radians(pitch);
+    const float yr = radians(yaw);
+    position.x = target.x + distance * std::cos(pr) * std::sin(yr);
+    position.y = target.y + distance * std::sin(pr);
+    position.z = target.z + distance * std::cos(pr) * std::cos(yr);
+}
+
+const char* characterKindOf(const std::string& catalogId) {
+    if (catalogId == "kedi" || catalogId == "kopek" || catalogId == "tavsan" || catalogId == "ayi" ||
+        catalogId == "tilki" || catalogId == "dinozor" || catalogId == "kurbaga" || catalogId == "karinca") {
+        return "quadruped";
+    }
+    if (catalogId == "kus" || catalogId == "kelebek" || catalogId == "ari" || catalogId == "melek" ||
+        catalogId == "peri" || catalogId == "ejderha" || catalogId == "yarasa" || catalogId == "penguen" ||
+        catalogId == "baykus") {
+        return "flyer";
+    }
+    if (catalogId == "top" || catalogId == "kabak" || catalogId == "yildiz" || catalogId == "balik") {
+        return "round";
+    }
+    return "humanoid";
 }
 
 void GameObject::nextCostume() {
@@ -204,6 +231,10 @@ Json Scene::toJson() const {
     cam["position"] = vecToJson(camera.position);
     cam["target"] = vecToJson(camera.target);
     cam["fov"] = camera.fov;
+    cam["yaw"] = camera.yaw;
+    cam["pitch"] = camera.pitch;
+    cam["distance"] = camera.distance;
+    cam["follow"] = camera.follow;
     root["camera"] = cam;
     root["gravity"] = gravity;
     root["backdrop"] = backdropId;
@@ -258,6 +289,11 @@ Scene Scene::fromJson(const Json& json) {
         scene.camera.position = vecFromJson(json["camera"]["position"], scene.camera.position);
         scene.camera.target = vecFromJson(json["camera"]["target"], scene.camera.target);
         scene.camera.fov = json["camera"]["fov"].asFloat(scene.camera.fov);
+        scene.camera.yaw = json["camera"]["yaw"].asFloat(scene.camera.yaw);
+        scene.camera.pitch = json["camera"]["pitch"].asFloat(scene.camera.pitch);
+        scene.camera.distance = json["camera"]["distance"].asFloat(scene.camera.distance);
+        scene.camera.follow = json["camera"]["follow"].asString();
+        scene.camera.refreshOrbit();
     }
     scene.gravity = json["gravity"].asFloat(scene.gravity);
     if (json["backdrop"].isString()) scene.applyBackdrop(json["backdrop"].asString());
@@ -301,6 +337,7 @@ Scene Scene::fromJson(const Json& json) {
 Scene Scene::makeDefault() {
     Scene scene;
     scene.applyBackdrop("cayir");
+    scene.camera.refreshOrbit();
 
     GameObject ground;
     ground.id = "ground";
@@ -339,7 +376,7 @@ Scene Scene::makeDefault() {
     GameObject cat;
     cat.id = "cat";
     cat.name = "Kedi";
-    cat.mesh = MeshType::Sprite;
+    cat.mesh = MeshType::Character;
     cat.catalogId = "kedi";
     cat.transform.position = {0.8f, 0.55f, 1.6f};
     cat.color = {0.96f, 0.62f, 0.28f};

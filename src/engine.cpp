@@ -154,10 +154,16 @@ void Engine::resetToDefault() {
     Json say = Json::object();
     say["op"] = "say";
     Json sayArgs = Json::object();
-    sayArgs["text"] = "Merhaba! Ben Kedi.";
+    sayArgs["text"] = "Merhaba! Ben 3D Kedi.";
     sayArgs["seconds"] = "3";
     say["args"] = sayArgs;
     catStack.push(say);
+    Json follow = Json::object();
+    follow["op"] = "camera_follow";
+    Json followArgs = Json::object();
+    followArgs["name"] = "cat";
+    follow["args"] = followArgs;
+    catStack.push(follow);
     catAnim["stack"] = catStack;
     list.push(catAnim);
 
@@ -236,7 +242,7 @@ Json Engine::addObjectFromSpec(const Json& spec) {
     if (spec["catalogId"].isString()) {
         object.catalogId = spec["catalogId"].asString();
         object.color = catalogColor(object.catalogId);
-        if (object.mesh == MeshType::Cube) object.mesh = MeshType::Sprite;
+        if (object.mesh == MeshType::Cube || object.mesh == MeshType::Sprite) object.mesh = MeshType::Character;
     }
     if (spec["color"].isString()) object.color = Color::fromHex(spec["color"].asString());
     if (spec["costumes"].isArray()) {
@@ -402,6 +408,51 @@ bool Engine::loadProject(const Json& json, std::string& error) {
     }
 }
 
+bool Engine::updateCamera(const Json& patch, std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto applyVec = [](Vec3& target, const Json& v) {
+        if (!v.isObject()) return;
+        if (v.has("x")) target.x = v["x"].asFloat(target.x);
+        if (v.has("y")) target.y = v["y"].asFloat(target.y);
+        if (v.has("z")) target.z = v["z"].asFloat(target.z);
+    };
+    applyVec(scene_.camera.target, patch["target"]);
+    applyVec(scene_.camera.position, patch["position"]);
+    if (patch["fov"].isNumber()) scene_.camera.fov = patch["fov"].asFloat(scene_.camera.fov);
+    if (patch["yaw"].isNumber()) scene_.camera.yaw = patch["yaw"].asFloat(scene_.camera.yaw);
+    if (patch["pitch"].isNumber()) scene_.camera.pitch = patch["pitch"].asFloat(scene_.camera.pitch);
+    if (patch["distance"].isNumber()) scene_.camera.distance = patch["distance"].asFloat(scene_.camera.distance);
+    if (patch["follow"].isString()) scene_.camera.follow = patch["follow"].asString();
+    if (patch["preset"].isString()) {
+        const std::string p = patch["preset"].asString();
+        if (p == "on" || p == "front") {
+            scene_.camera.yaw = 0;
+            scene_.camera.pitch = 8;
+            scene_.camera.distance = 8;
+        } else if (p == "yan" || p == "side") {
+            scene_.camera.yaw = 90;
+            scene_.camera.pitch = 10;
+            scene_.camera.distance = 8;
+        } else if (p == "ust" || p == "top") {
+            scene_.camera.yaw = 0;
+            scene_.camera.pitch = 80;
+            scene_.camera.distance = 12;
+        } else if (p == "fps") {
+            scene_.camera.yaw = 0;
+            scene_.camera.pitch = 5;
+            scene_.camera.distance = 2.2f;
+        } else {
+            scene_.camera.yaw = 45;
+            scene_.camera.pitch = 28;
+            scene_.camera.distance = 9.2f;
+        }
+    }
+    scene_.camera.refreshOrbit();
+    if (!playing_) snapshot_.camera = scene_.camera;
+    (void)error;
+    return true;
+}
+
 bool Engine::setBackdrop(const std::string& id) {
     std::lock_guard<std::mutex> lock(mutex_);
     scene_.applyBackdrop(id);
@@ -414,6 +465,12 @@ void Engine::tick(float dt) {
     if (!playing_) return;
     vm_.tick(scene_, dt, keys_);
     physics_.step(scene_, dt);
+    if (!scene_.camera.follow.empty()) {
+        GameObject* tracked = scene_.find(scene_.camera.follow);
+        if (!tracked) tracked = scene_.findByName(scene_.camera.follow);
+        if (tracked) scene_.camera.target = tracked->transform.position;
+    }
+    scene_.camera.refreshOrbit();
     const auto pending = scene_.pendingClones;
     scene_.pendingClones.clear();
     for (const auto& sourceId : pending) {

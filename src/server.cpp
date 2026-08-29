@@ -326,6 +326,15 @@ void EditorServer::handleClient(int fd) {
         std::string error;
         if (!engine_.loadProject(json, error)) sendError(fd, 400, error);
         else sendJson(fd, 200, engine_.projectJson());
+    } else if (path == "/api/camera" && (method == "POST" || method == "PATCH" || method == "PUT")) {
+        Json json;
+        if (!parseBody(json)) {
+            ::close(fd);
+            return;
+        }
+        std::string error;
+        if (!engine_.updateCamera(json, error)) sendError(fd, 400, error);
+        else sendJson(fd, 200, engine_.stateJson());
     } else if (path == "/api/backdrop" && method == "POST") {
         Json json;
         if (!parseBody(json)) {

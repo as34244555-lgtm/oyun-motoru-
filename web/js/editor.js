@@ -1,7 +1,8 @@
 import { api } from "./api.js";
 import { createViewport } from "./viewport.js";
 import { createBlockEditor } from "./blocks.js";
-import { BACKDROPS, CHARACTERS, characterCostumes, costumeImage } from "./library.js";
+import { BACKDROPS, CHARACTERS, characterCostumes, characterKindOf, costumeImage } from "./library.js";
+import { isometricThumb } from "./characters3d.js";
 import { openPaintEditor } from "./paint.js";
 
 const NOTES = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88, C5: 523.25 };
@@ -104,11 +105,48 @@ function numField(label, value, onCommit) {
   return wrap;
 }
 
+function renderCameraPanel(parent) {
+  const cam = state.camera || {};
+  const box = document.createElement("div");
+  const h = document.createElement("label");
+  h.className = "field";
+  h.textContent = "Oyun kamerası";
+  box.appendChild(h);
+  const row = document.createElement("div");
+  row.className = "row";
+  for (const [key, label] of [["yaw", "Yaw"], ["pitch", "Pitch"], ["distance", "Mesafe"], ["fov", "FOV"]]) {
+    row.appendChild(numField(label, cam[key], async (v) => {
+      await api.updateCamera({ [key]: v });
+      await refresh();
+    }));
+  }
+  box.appendChild(row);
+  const presets = document.createElement("div");
+  presets.className = "row";
+  for (const [id, label] of [["izometrik", "İzo"], ["on", "Ön"], ["yan", "Yan"], ["ust", "Üst"], ["fps", "FPS"]]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn";
+    b.textContent = label;
+    b.addEventListener("click", async () => {
+      await api.updateCamera({ preset: id });
+      await refresh();
+    });
+    presets.appendChild(b);
+  }
+  box.appendChild(presets);
+  parent.appendChild(box);
+}
+
 function renderInspector() {
   const object = selected();
   inspectorEl.innerHTML = "";
+  renderCameraPanel(inspectorEl);
   if (!object) {
-    inspectorEl.innerHTML = '<div class="empty">Bir nesne seç.</div>';
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Bir nesne seç.";
+    inspectorEl.appendChild(empty);
     return;
   }
   const name = document.createElement("label");
@@ -277,10 +315,10 @@ function openLibrary() {
       const card = document.createElement("button");
       card.type = "button";
       card.className = "lib-card";
-      card.innerHTML = `<img alt="${ch.name}" src="${costumeImage(ch.id, 0)}" /><span>${ch.name}</span>`;
+      card.innerHTML = `<div class="thumb">${isometricThumb(ch.hue, characterKindOf(ch.id))}</div><span>${ch.name} · 3D</span>`;
       card.addEventListener("click", async () => {
         const created = await api.addObject({
-          mesh: "sprite",
+          mesh: "character",
           name: ch.name,
           catalogId: ch.id,
           costumes: characterCostumes(ch.id),

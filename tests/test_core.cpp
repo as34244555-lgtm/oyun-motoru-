@@ -196,6 +196,21 @@ int main() {
         CHECK(scene.sky.b < 0.2f);
     }
 
+    {
+        Engine engine;
+        Json patch = Json::object();
+        patch["yaw"] = 90;
+        patch["pitch"] = 12;
+        patch["distance"] = 8;
+        std::string error;
+        CHECK(engine.updateCamera(patch, error));
+        const Json cam = engine.stateJson()["camera"];
+        CHECK(std::fabs(cam["yaw"].asFloat() - 90) < 0.01f);
+        CHECK(cam["position"]["x"].asFloat() > 1.0f);
+        CHECK(characterKindOf("kedi") == std::string("quadruped"));
+        CHECK(characterKindOf("ninja") == std::string("humanoid"));
+    }
+
     std::cout << "blokmotor tests: " << gPassed << " gecti, " << gFailed << " kaldi\n";
     return gFailed == 0 ? 0 : 1;
 }

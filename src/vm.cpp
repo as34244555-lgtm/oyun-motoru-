@@ -228,6 +228,12 @@ BlockVM::Value BlockVM::eval(Context& ctx, const Block& block) {
     }
     if (op == "visible") return Value::booleanValue(ctx.self && ctx.self->visible);
     if (op == "timer") return Value::num(timer_);
+    if (op == "x_position") return Value::num(ctx.self ? ctx.self->transform.position.x : 0);
+    if (op == "y_position") return Value::num(ctx.self ? ctx.self->transform.position.y : 0);
+    if (op == "z_position") return Value::num(ctx.self ? ctx.self->transform.position.z : 0);
+    if (op == "heading") return Value::num(ctx.self ? ctx.self->transform.rotation.y : 0);
+    if (op == "costume_number") return Value::num(ctx.self ? ctx.self->costumeIndex + 1 : 1);
+    if (op == "size_of") return Value::num(ctx.self ? ctx.self->size : 100);
     if (op == "random") {
         const double a = argf(block, "a", 1);
         const double b = argf(block, "b", 10);
@@ -319,7 +325,10 @@ void BlockVM::runBlock(Context& ctx, const Block& block) {
                             op == "set_var" || op == "change_var" || op == "broadcast" || op == "set_backdrop" ||
                             op == "next_backdrop" || op == "set_gravity" || op == "set_fov" || op == "set_volume" ||
                             op == "play_sound" || op == "play_note" || op == "reset_timer" || op == "list_add" ||
-                            op == "list_clear";
+                            op == "list_clear" || op == "set_camera_orbit" || op == "set_camera_yaw" ||
+                            op == "set_camera_pitch" || op == "change_camera_yaw" || op == "change_camera_pitch" ||
+                            op == "set_camera_distance" || op == "camera_follow" || op == "camera_unfollow" ||
+                            op == "camera_preset";
     if (!obj && noTargetOk) {
     } else if (!obj) {
         return;
@@ -431,12 +440,94 @@ void BlockVM::runBlock(Context& ctx, const Block& block) {
         if (ctx.scene) ctx.scene->lastSound = lastSound_;
     } else if (op == "set_volume") {
         if (ctx.scene) ctx.scene->volume = argf(block, "value", 80);
+    } else if (op == "change_volume") {
+        if (ctx.scene) ctx.scene->volume = clampf(ctx.scene->volume + argf(block, "value", -10), 0, 100);
+    } else if (op == "stop_sounds") {
+        lastSound_.clear();
+        if (ctx.scene) ctx.scene->lastSound.clear();
+    } else if (op == "touching_edge") {
+        if (obj) {
+            if (std::fabs(obj->transform.position.x) > 6) obj->velocity.x *= -1;
+            if (std::fabs(obj->transform.position.z) > 6) obj->velocity.z *= -1;
+        }
     } else if (op == "set_gravity") {
         if (ctx.scene) ctx.scene->gravity = argf(block, "value", -20);
     } else if (op == "set_fov") {
         if (ctx.scene) ctx.scene->camera.fov = argf(block, "value", 50);
     } else if (op == "camera_look") {
-        if (ctx.scene) ctx.scene->camera.target = obj->transform.position;
+        if (ctx.scene && obj) ctx.scene->camera.target = obj->transform.position;
+    } else if (op == "set_camera_orbit") {
+        if (ctx.scene) {
+            ctx.scene->camera.yaw = argf(block, "yaw", ctx.scene->camera.yaw);
+            ctx.scene->camera.pitch = argf(block, "pitch", ctx.scene->camera.pitch);
+            ctx.scene->camera.distance = argf(block, "distance", ctx.scene->camera.distance);
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "set_camera_yaw") {
+        if (ctx.scene) {
+            ctx.scene->camera.yaw = argf(block, "value", 45);
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "set_camera_pitch") {
+        if (ctx.scene) {
+            ctx.scene->camera.pitch = argf(block, "value", 28);
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "change_camera_yaw") {
+        if (ctx.scene) {
+            ctx.scene->camera.yaw += argf(block, "value", 10) * ctx.dt;
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "change_camera_pitch") {
+        if (ctx.scene) {
+            ctx.scene->camera.pitch += argf(block, "value", 10) * ctx.dt;
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "set_camera_distance") {
+        if (ctx.scene) {
+            ctx.scene->camera.distance = argf(block, "value", 9);
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "camera_follow") {
+        if (ctx.scene) ctx.scene->camera.follow = arg(block, "name", obj ? obj->id : "");
+    } else if (op == "camera_unfollow") {
+        if (ctx.scene) ctx.scene->camera.follow.clear();
+    } else if (op == "camera_preset") {
+        if (ctx.scene) {
+            const std::string p = arg(block, "name", "izometrik");
+            if (p == "on") {
+                ctx.scene->camera.yaw = 0;
+                ctx.scene->camera.pitch = 8;
+                ctx.scene->camera.distance = 8;
+            } else if (p == "yan") {
+                ctx.scene->camera.yaw = 90;
+                ctx.scene->camera.pitch = 10;
+            } else if (p == "ust") {
+                ctx.scene->camera.pitch = 80;
+                ctx.scene->camera.distance = 12;
+            } else if (p == "fps") {
+                ctx.scene->camera.pitch = 5;
+                ctx.scene->camera.distance = 2.2f;
+            } else {
+                ctx.scene->camera.yaw = 45;
+                ctx.scene->camera.pitch = 28;
+                ctx.scene->camera.distance = 9.2f;
+            }
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "turn_left") {
+        obj->transform.rotation.y += argf(block, "degrees", 15);
+    } else if (op == "turn_right") {
+        obj->transform.rotation.y -= argf(block, "degrees", 15);
+    } else if (op == "set_heading") {
+        obj->transform.rotation.y = argf(block, "degrees", 0);
+    } else if (op == "change_heading") {
+        obj->transform.rotation.y += argf(block, "degrees", 10) * ctx.dt;
+    } else if (op == "move_steps") {
+        const float steps = argf(block, "steps", 1) * ctx.dt;
+        const float yaw = radians(obj->transform.rotation.y);
+        obj->transform.position.x += std::sin(yaw) * steps;
+        obj->transform.position.z += std::cos(yaw) * steps;
     } else if (op == "broadcast") {
         const std::string msg = arg(block, "name", "merhaba");
         broadcasts_.insert(msg);

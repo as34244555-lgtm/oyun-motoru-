@@ -71,6 +71,29 @@ export const DEFS = [
   { op: "set_gravity", kind: "stack", cat: "world", cls: "world", title: "yerçekimi", fields: [{ key: "value", type: "number", value: "-20" }] },
   { op: "set_fov", kind: "stack", cat: "world", cls: "world", title: "kamera fov", fields: [{ key: "value", type: "number", value: "50" }] },
   { op: "camera_look", kind: "stack", cat: "world", cls: "world", title: "kamera bana baksın" },
+  { op: "set_camera_orbit", kind: "stack", cat: "world", cls: "world", title: "kamera açı", fields: [{ key: "yaw", type: "number", value: "45" }, { key: "pitch", type: "number", value: "28" }, { key: "distance", type: "number", value: "9" }] },
+  { op: "set_camera_yaw", kind: "stack", cat: "world", cls: "world", title: "kamera yaw", fields: [{ key: "value", type: "number", value: "45" }] },
+  { op: "set_camera_pitch", kind: "stack", cat: "world", cls: "world", title: "kamera pitch", fields: [{ key: "value", type: "number", value: "28" }] },
+  { op: "change_camera_yaw", kind: "stack", cat: "world", cls: "world", title: "kamerayı çevir", fields: [{ key: "value", type: "number", value: "40" }] },
+  { op: "change_camera_pitch", kind: "stack", cat: "world", cls: "world", title: "kamerayı eğ", fields: [{ key: "value", type: "number", value: "20" }] },
+  { op: "set_camera_distance", kind: "stack", cat: "world", cls: "world", title: "kamera mesafe", fields: [{ key: "value", type: "number", value: "9" }] },
+  { op: "camera_follow", kind: "stack", cat: "world", cls: "world", title: "kamerayı takip ettir", fields: [{ key: "name", type: "text", value: "Kedi" }] },
+  { op: "camera_unfollow", kind: "stack", cat: "world", cls: "world", title: "takibi bırak" },
+  { op: "camera_preset", kind: "stack", cat: "world", cls: "world", title: "kamera görünümü", fields: [{ key: "name", type: "select", options: ["izometrik", "on", "yan", "ust", "fps"] }] },
+
+  { op: "turn_left", kind: "stack", cat: "motion", cls: "motion", title: "sola dön", fields: [{ key: "degrees", type: "number", value: "15" }] },
+  { op: "turn_right", kind: "stack", cat: "motion", cls: "motion", title: "sağa dön", fields: [{ key: "degrees", type: "number", value: "15" }] },
+  { op: "set_heading", kind: "stack", cat: "motion", cls: "motion", title: "yön", fields: [{ key: "degrees", type: "number", value: "0" }] },
+  { op: "change_heading", kind: "stack", cat: "motion", cls: "motion", title: "yön değiştir", fields: [{ key: "degrees", type: "number", value: "90" }] },
+  { op: "move_steps", kind: "stack", cat: "motion", cls: "motion", title: "adım at", fields: [{ key: "steps", type: "number", value: "3" }] },
+
+  { op: "stop_sounds", kind: "stack", cat: "sound", cls: "sound", title: "sesleri durdur" },
+  { op: "change_volume", kind: "stack", cat: "sound", cls: "sound", title: "sesi değiştir", fields: [{ key: "value", type: "number", value: "-10" }] },
+
+  { op: "wait_until_key", kind: "stack", cat: "control", cls: "control", title: "tuşa kadar bekle", fields: [{ key: "key", type: "select", options: KEYS }] },
+  { op: "stop_this", kind: "stack", cat: "control", cls: "control", title: "bu scripti durdur" },
+
+  { op: "touching_edge", kind: "stack", cat: "sensing", cls: "sensing", title: "kenara değince sek" },
 ];
 
 const CATS = [
