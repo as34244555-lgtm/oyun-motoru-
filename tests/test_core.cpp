@@ -173,6 +173,29 @@ int main() {
         CHECK(!engine.playing());
     }
 
+    {
+        Scene scene;
+        GameObject hero;
+        hero.id = "hero";
+        hero.costumes = {{"a", ""}, {"b", ""}, {"c", ""}};
+        scene.objects.push_back(hero);
+        Json root = Json::parse(R"({
+          "scripts":[{
+            "target":"hero",
+            "hat":"every_frame",
+            "stack":[{"op":"next_costume"},{"op":"say","args":{"text":"hi","seconds":"1"}}]
+          }]
+        })");
+        BlockVM vm;
+        vm.load(root);
+        vm.tick(scene, 0.016f, {});
+        CHECK(scene.objects[0].costumeIndex == 1);
+        CHECK(scene.objects[0].sayText == "hi");
+        scene.applyBackdrop("uzay");
+        CHECK(scene.backdropId == "uzay");
+        CHECK(scene.sky.b < 0.2f);
+    }
+
     std::cout << "blokmotor tests: " << gPassed << " gecti, " << gFailed << " kaldi\n";
     return gFailed == 0 ? 0 : 1;
 }

@@ -47,6 +47,8 @@ public:
     Json save() const;
     void resetRuntime();
     void tick(Scene& scene, float dt, const std::unordered_set<std::string>& keys);
+    Json varsJson() const;
+    std::string lastSound() const { return lastSound_; }
 
     const std::vector<Script>& scripts() const { return scripts_; }
     std::vector<Script>& scripts() { return scripts_; }
@@ -100,6 +102,10 @@ private:
 
     std::vector<Script> scripts_;
     std::unordered_map<std::string, double> vars_;
+    std::unordered_map<std::string, std::vector<double>> lists_;
+    std::unordered_set<std::string> broadcasts_;
+    std::string lastSound_;
+    float timer_ = 0;
 
     void runStack(Context& ctx, const std::vector<Block>& stack);
     void runBlock(Context& ctx, const Block& block);

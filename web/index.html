@@ -17,17 +17,22 @@
         <div class="logo">B</div>
         <div>
           <h1>BlokMotor</h1>
-          <p>C++ 3D motor · Scratch blokları</p>
+          <p>C++ 3D motor · Scratch+ Unity editör</p>
         </div>
       </div>
       <div class="toolbar">
         <button class="btn primary" id="btn-play" type="button">▶ Oynat</button>
         <button class="btn danger" id="btn-stop" type="button" disabled>■ Durdur</button>
         <span class="play-dot" id="play-dot"></span>
+        <button class="btn" id="btn-library" type="button">Kütüphane</button>
+        <button class="btn" id="btn-paint" type="button">Kostüm çiz</button>
         <button class="btn" id="btn-cube" type="button">+ Küp</button>
         <button class="btn" id="btn-sphere" type="button">+ Küre</button>
         <button class="btn" id="btn-pyramid" type="button">+ Piramit</button>
         <button class="btn" id="btn-plane" type="button">+ Zemin</button>
+        <button class="btn ghost" id="btn-save" type="button">Projeyi kaydet</button>
+        <button class="btn ghost" id="btn-load" type="button">Yükle</button>
+        <input id="file-load" type="file" accept="application/json" hidden />
         <button class="btn ghost" id="btn-reset" type="button">Sahneyi sıfırla</button>
       </div>
     </header>
@@ -42,8 +47,9 @@
         <h2>Sahne</h2>
         <div class="viewport-body">
           <canvas id="view"></canvas>
+          <div class="speech-log" id="speech-log"></div>
           <div class="viewport-overlay">
-            <span class="chip" id="hint">Sürükle: döndür · tekerlek: yakınlaş · WASD/oklar/Space: oyun</span>
+            <span class="chip" id="hint">WASD: kedi · oklar: küre · Space: zıpla · Kütüphane: 45+ karakter</span>
           </div>
           <div class="engine-preview">
             <img id="cpu-frame" alt="C++ yazılım renderer çıktısı" />

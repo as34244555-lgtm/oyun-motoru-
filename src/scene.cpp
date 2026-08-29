@@ -73,18 +73,51 @@ std::string Color::toHex() const {
     return buf;
 }
 
+void GameObject::nextCostume() {
+    if (costumes.empty()) return;
+    costumeIndex = (costumeIndex + 1) % static_cast<int>(costumes.size());
+}
+
+void GameObject::setCostume(int index) {
+    if (costumes.empty()) return;
+    const int n = static_cast<int>(costumes.size());
+    costumeIndex = ((index % n) + n) % n;
+}
+
 Vec3 GameObject::halfExtents() const {
+    const float s = std::max(0.15f, size / 100.0f);
     switch (mesh) {
         case MeshType::Plane:
             return {0.5f * transform.scale.x, 0.02f * std::max(0.1f, transform.scale.y), 0.5f * transform.scale.z};
+        case MeshType::Sprite:
+        case MeshType::Character:
+            return {0.35f * transform.scale.x * s, 0.55f * transform.scale.y * s, 0.2f * transform.scale.z * s};
+        case MeshType::Capsule:
+            return {0.28f * transform.scale.x * s, 0.5f * transform.scale.y * s, 0.28f * transform.scale.z * s};
         case MeshType::Pyramid:
-            return {0.5f * transform.scale.x, 0.5f * transform.scale.y, 0.5f * transform.scale.z};
         case MeshType::Sphere:
-            return {0.5f * transform.scale.x, 0.5f * transform.scale.y, 0.5f * transform.scale.z};
         case MeshType::Cube:
         default:
-            return {0.5f * transform.scale.x, 0.5f * transform.scale.y, 0.5f * transform.scale.z};
+            return {0.5f * transform.scale.x * s, 0.5f * transform.scale.y * s, 0.5f * transform.scale.z * s};
     }
+}
+
+Color catalogColor(const std::string& catalogId) {
+    unsigned h = 2166136261u;
+    for (unsigned char c : catalogId) h = (h ^ c) * 16777619u;
+    const float hue = (h % 360) / 360.0f;
+    auto f = [&](float p, float q, float t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1.0f / 6) return p + (q - p) * 6 * t;
+        if (t < 0.5f) return q;
+        if (t < 2.0f / 3) return p + (q - p) * (2.0f / 3 - t) * 6;
+        return p;
+    };
+    const float s = 0.62f, l = 0.55f;
+    const float q = l < 0.5f ? l * (1 + s) : l + s - l * s;
+    const float p = 2 * l - q;
+    return {f(p, q, hue + 1.0f / 3), f(p, q, hue), f(p, q, hue - 1.0f / 3)};
 }
 
 GameObject* Scene::find(const std::string& id) {
@@ -124,6 +157,47 @@ bool Scene::remove(const std::string& id) {
 
 void Scene::clear() { objects.clear(); }
 
+void Scene::applyBackdrop(const std::string& id) {
+    backdropId = id;
+    struct Sky {
+        const char* name;
+        Color color;
+    };
+    static const Sky skies[] = {
+        {"cayir", {0.45f, 0.72f, 0.95f}},
+        {"gece", {0.05f, 0.07f, 0.16f}},
+        {"gunbatimi", {0.72f, 0.32f, 0.22f}},
+        {"uzay", {0.04f, 0.04f, 0.08f}},
+        {"deniz", {0.18f, 0.42f, 0.62f}},
+        {"col", {0.86f, 0.70f, 0.38f}},
+        {"kar", {0.78f, 0.86f, 0.94f}},
+        {"sehir", {0.22f, 0.26f, 0.34f}},
+        {"orman", {0.16f, 0.32f, 0.18f}},
+        {"magara", {0.12f, 0.10f, 0.09f}},
+        {"kale", {0.28f, 0.30f, 0.38f}},
+        {"sahne", {0.10f, 0.08f, 0.14f}},
+        {"sualti", {0.05f, 0.22f, 0.38f}},
+        {"volkan", {0.28f, 0.08f, 0.05f}},
+        {"bulutlar", {0.70f, 0.80f, 0.92f}},
+        {"ay", {0.12f, 0.12f, 0.14f}},
+        {"ciftlik", {0.55f, 0.72f, 0.42f}},
+        {"stadyum", {0.20f, 0.38f, 0.22f}},
+        {"sinif", {0.62f, 0.58f, 0.48f}},
+        {"labirent", {0.18f, 0.20f, 0.16f}},
+        {"neon", {0.10f, 0.04f, 0.22f}},
+        {"sonbahar", {0.72f, 0.42f, 0.18f}},
+        {"gol", {0.32f, 0.52f, 0.62f}},
+        {"dag", {0.40f, 0.52f, 0.68f}},
+    };
+    sky = {0.07f, 0.09f, 0.14f};
+    for (const auto& item : skies) {
+        if (id == item.name) {
+            sky = item.color;
+            break;
+        }
+    }
+}
+
 Json Scene::toJson() const {
     Json root = Json::object();
     Json cam = Json::object();
@@ -132,6 +206,12 @@ Json Scene::toJson() const {
     cam["fov"] = camera.fov;
     root["camera"] = cam;
     root["gravity"] = gravity;
+    root["backdrop"] = backdropId;
+    root["timer"] = timer;
+    root["volume"] = volume;
+    root["lastSound"] = lastSound;
+    root["lastBroadcast"] = lastBroadcast;
+    root["sky"] = colorToJson(sky);
     Json list = Json::array();
     for (const auto& object : objects) {
         Json j = Json::object();
@@ -146,6 +226,25 @@ Json Scene::toJson() const {
         j["visible"] = object.visible;
         j["dynamic"] = object.dynamic;
         j["grounded"] = object.grounded;
+        j["catalogId"] = object.catalogId;
+        j["costumeIndex"] = object.costumeIndex;
+        j["opacity"] = object.opacity;
+        j["size"] = object.size;
+        j["layer"] = object.layer;
+        j["sayText"] = object.sayText;
+        j["sayTime"] = object.sayTime;
+        j["animating"] = object.animating;
+        j["animFps"] = object.animFps;
+        j["isClone"] = object.isClone;
+        j["cloneOf"] = object.cloneOf;
+        Json costumes = Json::array();
+        for (const auto& costume : object.costumes) {
+            Json c = Json::object();
+            c["name"] = costume.name;
+            c["image"] = costume.image;
+            costumes.push(c);
+        }
+        j["costumes"] = costumes;
         list.push(j);
     }
     root["objects"] = list;
@@ -161,6 +260,9 @@ Scene Scene::fromJson(const Json& json) {
         scene.camera.fov = json["camera"]["fov"].asFloat(scene.camera.fov);
     }
     scene.gravity = json["gravity"].asFloat(scene.gravity);
+    if (json["backdrop"].isString()) scene.applyBackdrop(json["backdrop"].asString());
+    scene.timer = json["timer"].asFloat(0);
+    scene.volume = json["volume"].asFloat(80);
     if (json["objects"].isArray()) {
         for (const auto& item : json["objects"].arrayItems()) {
             GameObject object;
@@ -175,6 +277,21 @@ Scene Scene::fromJson(const Json& json) {
             object.visible = item["visible"].asBool(true);
             object.dynamic = item["dynamic"].asBool(object.mesh != MeshType::Plane);
             object.grounded = item["grounded"].asBool(false);
+            object.catalogId = item["catalogId"].asString();
+            object.costumeIndex = item["costumeIndex"].asInt(0);
+            object.opacity = item["opacity"].asFloat(1);
+            object.size = item["size"].asFloat(100);
+            object.layer = item["layer"].asInt(0);
+            object.sayText = item["sayText"].asString();
+            object.animating = item["animating"].asBool(false);
+            object.animFps = item["animFps"].asFloat(6);
+            object.isClone = item["isClone"].asBool(false);
+            object.cloneOf = item["cloneOf"].asString();
+            if (item["costumes"].isArray()) {
+                for (const auto& c : item["costumes"].arrayItems()) {
+                    object.costumes.push_back({c["name"].asString("kostum"), c["image"].asString()});
+                }
+            }
             scene.objects.push_back(object);
         }
     }
@@ -183,6 +300,7 @@ Scene Scene::fromJson(const Json& json) {
 
 Scene Scene::makeDefault() {
     Scene scene;
+    scene.applyBackdrop("cayir");
 
     GameObject ground;
     ground.id = "ground";
@@ -217,6 +335,16 @@ Scene Scene::makeDefault() {
     pyramid.transform.position = {-2.3f, 0.5f, -0.4f};
     pyramid.color = {0.98f, 0.78f, 0.22f};
     scene.objects.push_back(pyramid);
+
+    GameObject cat;
+    cat.id = "cat";
+    cat.name = "Kedi";
+    cat.mesh = MeshType::Sprite;
+    cat.catalogId = "kedi";
+    cat.transform.position = {0.8f, 0.55f, 1.6f};
+    cat.color = {0.96f, 0.62f, 0.28f};
+    cat.costumes = {{"dur", ""}, {"adim1", ""}, {"adim2", ""}};
+    scene.objects.push_back(cat);
 
     return scene;
 }

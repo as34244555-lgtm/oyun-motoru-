@@ -6,11 +6,12 @@ Oyunu C++ ile yazmazsın. Motor C++ ile çalışır; sen nesneleri sahneye koyar
 
 ## Neler var
 
-- 3D sahne: küp, küre, piramit, zemin
-- Yazılım rasterizer (GPU gerekmez) + tarayıcıda Three.js görünüm
-- Yerçekimi ve basit çarpışma
-- Blok VM: her kare, tuş, dön, zıpla, konum, renk, eğer, tekrarla
-- Web editör: hiyerarşi, denetçi, sahne, kod blokları
+- 3D sahne: küp, küre, piramit, zemin, sprite karakter, figüran
+- 45+ karakter kütüphanesi (kedi, robot, ninja, ejderha…) ve 24 dekor
+- Kostüm / animasyon ve tarayıcıda karakter çizme (fırça, silgi, şekiller)
+- Scratch’ten geniş blok seti: olay, hareket, görünüm, ses, kontrol, kopya, kalem, değişken, 3D/kamera
+- Yazılım rasterizer + Three.js görünüm
+- Proje kaydet / yükle
 - Tek binary: `blokmotor` hem motor hem editör sunucusu
 
 ## Derleme
@@ -79,7 +80,7 @@ API özeti: `/api/state`, `/api/objects`, `/api/scripts`, `/api/play`, `/api/sto
 }
 ```
 
-Desteklenen işlemler: `when_start`, `every_frame`, `when_key`, `set_position`, `change_position`, `rotate`, `set_velocity`, `jump`, `move_forward`, `set_color`, `set_scale`, `set_visible`, `if`, `repeat`, `wait`, `key_down`, `grounded`, `set_var`, `change_var`.
+Blok paletinde 70’ten fazla işlem var: kostüm, dekor, söyle/düşün, kopya, yayın, ses, kalem, değişken/liste, kamera ve yerçekimi dahil. Karakter eklemek için editörde **Kütüphane**’ye tıkla; çizmek için **Kostüm çiz**.
 
 ## Sonraki adımlar
 

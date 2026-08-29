@@ -1,26 +1,88 @@
-const DEFS = [
+const KEYS = ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyQ"];
+const BACKS = ["cayir", "gece", "gunbatimi", "uzay", "deniz", "col", "kar", "sehir", "orman", "magara", "kale", "sahne", "sualti", "volkan", "bulutlar", "ay", "ciftlik", "stadyum", "sinif", "labirent", "neon", "sonbahar", "gol", "dag"];
+
+export const DEFS = [
   { op: "when_start", kind: "hat", cat: "events", cls: "hat", title: "Oyun başlayınca" },
   { op: "every_frame", kind: "hat", cat: "events", cls: "hat", title: "Her kare" },
-  { op: "when_key", kind: "hat", cat: "events", cls: "hat", title: "Tuşa basılınca", fields: [{ key: "key", type: "select", options: ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyW", "KeyA", "KeyS", "KeyD"] }] },
+  { op: "when_key", kind: "hat", cat: "events", cls: "hat", title: "Tuşa basılınca", fields: [{ key: "key", type: "select", options: KEYS }] },
+  { op: "when_broadcast", kind: "hat", cat: "events", cls: "hat", title: "Mesaj gelince", fields: [{ key: "name", type: "text", value: "merhaba" }] },
+  { op: "when_backdrop", kind: "hat", cat: "events", cls: "hat", title: "Dekor olunca", fields: [{ key: "name", type: "select", options: BACKS }] },
+  { op: "when_clone", kind: "hat", cat: "events", cls: "hat", title: "Kopya olunca" },
+  { op: "broadcast", kind: "stack", cat: "events", cls: "hat", title: "mesaj yolla", fields: [{ key: "name", type: "text", value: "merhaba" }] },
+
   { op: "set_position", kind: "stack", cat: "motion", cls: "motion", title: "konumu ayarla", fields: [{ key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "1" }, { key: "z", type: "number", value: "0" }] },
   { op: "change_position", kind: "stack", cat: "motion", cls: "motion", title: "konumu değiştir", fields: [{ key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "0" }, { key: "z", type: "number", value: "0" }] },
+  { op: "set_x", kind: "stack", cat: "motion", cls: "motion", title: "x =", fields: [{ key: "value", type: "number", value: "0" }] },
+  { op: "set_y", kind: "stack", cat: "motion", cls: "motion", title: "y =", fields: [{ key: "value", type: "number", value: "1" }] },
+  { op: "set_z", kind: "stack", cat: "motion", cls: "motion", title: "z =", fields: [{ key: "value", type: "number", value: "0" }] },
+  { op: "change_x", kind: "stack", cat: "motion", cls: "motion", title: "x değiştir", fields: [{ key: "value", type: "number", value: "0.1" }] },
+  { op: "change_y", kind: "stack", cat: "motion", cls: "motion", title: "y değiştir", fields: [{ key: "value", type: "number", value: "0.1" }] },
+  { op: "change_z", kind: "stack", cat: "motion", cls: "motion", title: "z değiştir", fields: [{ key: "value", type: "number", value: "0.1" }] },
+  { op: "glide", kind: "stack", cat: "motion", cls: "motion", title: "git", fields: [{ key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "1" }, { key: "z", type: "number", value: "0" }] },
   { op: "rotate", kind: "stack", cat: "motion", cls: "motion", title: "döndür", fields: [{ key: "axis", type: "select", options: ["x", "y", "z"], value: "y" }, { key: "degrees", type: "number", value: "90" }] },
   { op: "set_velocity", kind: "stack", cat: "motion", cls: "motion", title: "hızı ayarla", fields: [{ key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "0" }, { key: "z", type: "number", value: "0" }] },
   { op: "jump", kind: "stack", cat: "motion", cls: "motion", title: "zıpla güç", fields: [{ key: "force", type: "number", value: "8" }] },
   { op: "move_forward", kind: "stack", cat: "motion", cls: "motion", title: "ileri git", fields: [{ key: "amount", type: "number", value: "3" }] },
+  { op: "point_towards", kind: "stack", cat: "motion", cls: "motion", title: "bak", fields: [{ key: "name", type: "text", value: "Kure" }] },
+  { op: "go_to", kind: "stack", cat: "motion", cls: "motion", title: "yanına git", fields: [{ key: "name", type: "text", value: "Kure" }] },
+  { op: "bounce_edge", kind: "stack", cat: "motion", cls: "motion", title: "kenardan sek" },
+  { op: "apply_force", kind: "stack", cat: "motion", cls: "motion", title: "kuvvet uygula", fields: [{ key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "2" }, { key: "z", type: "number", value: "0" }] },
+
   { op: "set_color", kind: "stack", cat: "looks", cls: "looks", title: "renk", fields: [{ key: "color", type: "color", value: "#ff5533" }] },
   { op: "set_scale", kind: "stack", cat: "looks", cls: "looks", title: "ölçek", fields: [{ key: "value", type: "number", value: "1" }] },
-  { op: "set_visible", kind: "stack", cat: "looks", cls: "looks", title: "görünür", fields: [{ key: "value", type: "select", options: ["true", "false"] }] },
-  { op: "if", kind: "c", cat: "control", cls: "control", title: "eğer", fields: [{ key: "condOp", type: "select", options: ["key_down", "grounded"] }, { key: "key", type: "select", options: ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyW", "KeyA", "KeyS", "KeyD"] }] },
+  { op: "set_size", kind: "stack", cat: "looks", cls: "looks", title: "boyut %", fields: [{ key: "value", type: "number", value: "100" }] },
+  { op: "change_size", kind: "stack", cat: "looks", cls: "looks", title: "boyutu değiştir", fields: [{ key: "value", type: "number", value: "10" }] },
+  { op: "set_opacity", kind: "stack", cat: "looks", cls: "looks", title: "saydamlık %", fields: [{ key: "value", type: "number", value: "100" }] },
+  { op: "show", kind: "stack", cat: "looks", cls: "looks", title: "göster" },
+  { op: "hide", kind: "stack", cat: "looks", cls: "looks", title: "gizle" },
+  { op: "say", kind: "stack", cat: "looks", cls: "looks", title: "söyle", fields: [{ key: "text", type: "text", value: "Merhaba!" }, { key: "seconds", type: "number", value: "2" }] },
+  { op: "think", kind: "stack", cat: "looks", cls: "looks", title: "düşün", fields: [{ key: "text", type: "text", value: "Hmm..." }, { key: "seconds", type: "number", value: "2" }] },
+  { op: "next_costume", kind: "stack", cat: "looks", cls: "looks", title: "sonraki kostüm" },
+  { op: "set_costume", kind: "stack", cat: "looks", cls: "looks", title: "kostüm no", fields: [{ key: "index", type: "number", value: "1" }] },
+  { op: "start_anim", kind: "stack", cat: "looks", cls: "looks", title: "animasyonu başlat", fields: [{ key: "fps", type: "number", value: "8" }] },
+  { op: "stop_anim", kind: "stack", cat: "looks", cls: "looks", title: "animasyonu durdur" },
+  { op: "set_backdrop", kind: "stack", cat: "looks", cls: "looks", title: "dekor", fields: [{ key: "name", type: "select", options: BACKS }] },
+  { op: "next_backdrop", kind: "stack", cat: "looks", cls: "looks", title: "sonraki dekor" },
+  { op: "set_layer", kind: "stack", cat: "looks", cls: "looks", title: "katman", fields: [{ key: "value", type: "number", value: "0" }] },
+
+  { op: "play_sound", kind: "stack", cat: "sound", cls: "sound", title: "ses çal", fields: [{ key: "name", type: "select", options: ["meow", "jump", "coin", "hit", "win", "boom"] }] },
+  { op: "play_note", kind: "stack", cat: "sound", cls: "sound", title: "nota çal", fields: [{ key: "note", type: "select", options: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"] }] },
+  { op: "set_volume", kind: "stack", cat: "sound", cls: "sound", title: "ses düzeyi", fields: [{ key: "value", type: "number", value: "80" }] },
+
+  { op: "if", kind: "c", cat: "control", cls: "control", title: "eğer", fields: [{ key: "condOp", type: "select", options: ["key_down", "grounded", "touching", "visible"] }, { key: "key", type: "select", options: KEYS }, { key: "name", type: "text", value: "Kure" }] },
+  { op: "if_else", kind: "c2", cat: "control", cls: "control", title: "eğer / değilse", fields: [{ key: "condOp", type: "select", options: ["key_down", "grounded"] }, { key: "key", type: "select", options: KEYS }] },
   { op: "repeat", kind: "c", cat: "control", cls: "control", title: "tekrarla", fields: [{ key: "times", type: "number", value: "4" }] },
+  { op: "forever", kind: "c", cat: "control", cls: "control", title: "sürekli" },
   { op: "wait", kind: "stack", cat: "control", cls: "control", title: "bekle saniye", fields: [{ key: "seconds", type: "number", value: "1" }] },
+  { op: "create_clone", kind: "stack", cat: "control", cls: "control", title: "kopya oluştur" },
+  { op: "delete_clone", kind: "stack", cat: "control", cls: "control", title: "kopyayı sil" },
+
+  { op: "reset_timer", kind: "stack", cat: "sensing", cls: "sensing", title: "zamanlayıcıyı sıfırla" },
+
+  { op: "set_var", kind: "stack", cat: "vars", cls: "vars", title: "değişken yap", fields: [{ key: "name", type: "text", value: "skor" }, { key: "value", type: "number", value: "0" }] },
+  { op: "change_var", kind: "stack", cat: "vars", cls: "vars", title: "değişkeni değiştir", fields: [{ key: "name", type: "text", value: "skor" }, { key: "value", type: "number", value: "1" }] },
+  { op: "list_add", kind: "stack", cat: "vars", cls: "vars", title: "listeye ekle", fields: [{ key: "name", type: "text", value: "liste" }, { key: "value", type: "number", value: "1" }] },
+  { op: "list_clear", kind: "stack", cat: "vars", cls: "vars", title: "listeyi temizle", fields: [{ key: "name", type: "text", value: "liste" }] },
+
+  { op: "pen_down", kind: "stack", cat: "pen", cls: "pen", title: "kalemi bastır" },
+  { op: "pen_up", kind: "stack", cat: "pen", cls: "pen", title: "kalemi kaldır" },
+  { op: "set_pen", kind: "stack", cat: "pen", cls: "pen", title: "kalem", fields: [{ key: "color", type: "color", value: "#2244ee" }, { key: "size", type: "number", value: "3" }] },
+
+  { op: "set_gravity", kind: "stack", cat: "world", cls: "world", title: "yerçekimi", fields: [{ key: "value", type: "number", value: "-20" }] },
+  { op: "set_fov", kind: "stack", cat: "world", cls: "world", title: "kamera fov", fields: [{ key: "value", type: "number", value: "50" }] },
+  { op: "camera_look", kind: "stack", cat: "world", cls: "world", title: "kamera bana baksın" },
 ];
 
 const CATS = [
   { id: "events", label: "Olaylar" },
   { id: "motion", label: "Hareket" },
   { id: "looks", label: "Görünüm" },
+  { id: "sound", label: "Ses" },
   { id: "control", label: "Kontrol" },
+  { id: "sensing", label: "Algı" },
+  { id: "vars", label: "Değişken" },
+  { id: "pen", label: "Kalem" },
+  { id: "world", label: "Dünya / 3D" },
 ];
 
 function defOf(op) {
@@ -36,11 +98,12 @@ function defaultBlock(op) {
   const args = {};
   for (const field of def.fields || []) args[field.key] = field.value ?? field.options?.[0] ?? "";
   const block = { op, args };
-  if (def.op === "if") {
-    block.cond = { op: args.condOp || "key_down", args: { key: args.key || "Space" } };
+  if (def.op === "if" || def.op === "if_else") {
+    block.cond = { op: args.condOp || "key_down", args: { key: args.key || "Space", name: args.name || "" } };
     block.then = [];
+    if (def.op === "if_else") block.else = [];
   }
-  if (def.op === "repeat") block.stack = [];
+  if (def.op === "repeat" || def.op === "forever") block.stack = [];
   return block;
 }
 
@@ -62,13 +125,14 @@ function fieldControl(block, field, onChange) {
     el.type = field.type === "color" ? "color" : field.type === "number" ? "number" : "text";
     el.value = value;
     if (field.type === "number") el.step = "0.1";
+    if (field.type === "text") el.style.maxWidth = "90px";
   }
   el.addEventListener("pointerdown", (e) => e.stopPropagation());
   el.addEventListener("change", () => {
     block.args = block.args || {};
     block.args[field.key] = el.value;
-    if (block.op === "if") {
-      block.cond = { op: block.args.condOp || "key_down", args: { key: block.args.key || "Space" } };
+    if (block.op === "if" || block.op === "if_else") {
+      block.cond = { op: block.args.condOp || "key_down", args: { key: block.args.key || "Space", name: block.args.name || "" } };
     }
     onChange();
   });
@@ -76,11 +140,41 @@ function fieldControl(block, field, onChange) {
   return wrap;
 }
 
+function mouth(block, listKey, onChange) {
+  const el = document.createElement("div");
+  el.className = "mouth";
+  const inner = (block[listKey] ||= []);
+  if (!inner.length) {
+    const hint = document.createElement("div");
+    hint.className = "drop-hint";
+    hint.textContent = listKey === "else" ? "değilse" : "blok bırak";
+    el.appendChild(hint);
+  }
+  inner.forEach((child, index) => {
+    el.appendChild(renderBlock(child, onChange, () => {
+      inner.splice(index, 1);
+      onChange();
+    }));
+  });
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const op = e.dataTransfer.getData("text/blok-op");
+    if (!op || defOf(op).kind === "hat") return;
+    inner.push(defaultBlock(op));
+    onChange();
+  });
+  return el;
+}
+
 function renderBlock(block, onChange, onRemove) {
   const def = defOf(block.op);
   const el = document.createElement("div");
   el.className = `block ${def.cls}`;
-  el.dataset.op = block.op;
   const line = document.createElement("div");
   line.className = "line";
   const title = document.createElement("span");
@@ -90,7 +184,6 @@ function renderBlock(block, onChange, onRemove) {
   const del = document.createElement("button");
   del.type = "button";
   del.textContent = "×";
-  del.title = "Sil";
   del.style.marginLeft = "auto";
   del.style.background = "transparent";
   del.style.border = "0";
@@ -101,36 +194,10 @@ function renderBlock(block, onChange, onRemove) {
   });
   line.appendChild(del);
   el.appendChild(line);
-
-  if (def.op === "if" || def.op === "repeat") {
-    const mouth = document.createElement("div");
-    mouth.className = "mouth";
-    const inner = def.op === "if" ? (block.then ||= []) : (block.stack ||= []);
-    if (!inner.length) {
-      const hint = document.createElement("div");
-      hint.className = "drop-hint";
-      hint.textContent = "blok eklemek için palete tıkla, sonra buraya bırak";
-      mouth.appendChild(hint);
-    }
-    inner.forEach((child, index) => {
-      mouth.appendChild(renderBlock(child, onChange, () => {
-        inner.splice(index, 1);
-        onChange();
-      }));
-    });
-    mouth.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-    mouth.addEventListener("drop", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const op = e.dataTransfer.getData("text/blok-op");
-      if (!op || defOf(op).kind === "hat") return;
-      inner.push(defaultBlock(op));
-      onChange();
-    });
-    el.appendChild(mouth);
+  if (def.kind === "c" || def.op === "if") el.appendChild(mouth(block, def.op === "repeat" || def.op === "forever" ? "stack" : "then", onChange));
+  if (def.kind === "c2" || def.op === "if_else") {
+    el.appendChild(mouth(block, "then", onChange));
+    el.appendChild(mouth(block, "else", onChange));
   }
   return el;
 }
@@ -138,6 +205,7 @@ function renderBlock(block, onChange, onRemove) {
 export function createBlockEditor({ paletteEl, scriptsEl, onChange }) {
   let scripts = [];
   let target = "";
+  let query = "";
 
   function emit() {
     onChange?.({ scripts: clone(scripts) });
@@ -168,19 +236,32 @@ export function createBlockEditor({ paletteEl, scriptsEl, onChange }) {
 
   function renderPalette() {
     paletteEl.innerHTML = "";
+    const search = document.createElement("input");
+    search.type = "search";
+    search.placeholder = "blok ara...";
+    search.value = query;
+    search.addEventListener("input", () => {
+      query = search.value.toLowerCase();
+      renderPalette();
+    });
+    paletteEl.appendChild(search);
+    const count = document.createElement("div");
+    count.className = "cat";
+    count.textContent = `${DEFS.length} blok`;
+    paletteEl.appendChild(count);
     for (const cat of CATS) {
+      const items = DEFS.filter((d) => d.cat === cat.id && d.title.toLowerCase().includes(query));
+      if (!items.length) continue;
       const h = document.createElement("div");
       h.className = "cat";
       h.textContent = cat.label;
       paletteEl.appendChild(h);
-      for (const def of DEFS.filter((d) => d.cat === cat.id)) {
+      for (const def of items) {
         const item = document.createElement("div");
         item.className = `palette-item ${def.cls}`;
         item.textContent = def.title;
         item.draggable = true;
-        item.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/blok-op", def.op);
-        });
+        item.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/blok-op", def.op));
         item.addEventListener("click", () => addBlock(def.op));
         paletteEl.appendChild(item);
       }
@@ -193,7 +274,7 @@ export function createBlockEditor({ paletteEl, scriptsEl, onChange }) {
     if (!mine.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "Soldaki bir olay bloğuna tıkla (Her kare, Oyun başlayınca). Sonra hareket bloklarını ekle.";
+      empty.textContent = "Soldan bir olay bloğu ekle, sonra hareket / kostüm / ses bloklarını tıkla.";
       scriptsEl.appendChild(empty);
       return;
     }

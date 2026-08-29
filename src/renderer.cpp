@@ -67,6 +67,52 @@ std::vector<Triangle> makePyramid() {
     return t;
 }
 
+std::vector<Triangle> makeSprite() {
+    std::vector<Triangle> t;
+    addQuad(t, {-0.38f, -0.5f, 0.02f}, {0.38f, -0.5f, 0.02f}, {0.38f, 0.72f, 0.02f}, {-0.38f, 0.72f, 0.02f}, {0, 0, 1});
+    addQuad(t, {0.38f, -0.5f, -0.02f}, {-0.38f, -0.5f, -0.02f}, {-0.38f, 0.72f, -0.02f}, {0.38f, 0.72f, -0.02f}, {0, 0, -1});
+    return t;
+}
+
+std::vector<Triangle> makeCapsule() {
+    std::vector<Triangle> t;
+    addQuad(t, {-0.28f, -0.5f, 0.28f}, {0.28f, -0.5f, 0.28f}, {0.28f, 0.5f, 0.28f}, {-0.28f, 0.5f, 0.28f}, {0, 0, 1});
+    addQuad(t, {0.28f, -0.5f, -0.28f}, {-0.28f, -0.5f, -0.28f}, {-0.28f, 0.5f, -0.28f}, {0.28f, 0.5f, -0.28f}, {0, 0, -1});
+    addQuad(t, {-0.28f, -0.5f, -0.28f}, {-0.28f, -0.5f, 0.28f}, {-0.28f, 0.5f, 0.28f}, {-0.28f, 0.5f, -0.28f}, {-1, 0, 0});
+    addQuad(t, {0.28f, -0.5f, 0.28f}, {0.28f, -0.5f, -0.28f}, {0.28f, 0.5f, -0.28f}, {0.28f, 0.5f, 0.28f}, {1, 0, 0});
+    addQuad(t, {-0.28f, 0.5f, 0.28f}, {0.28f, 0.5f, 0.28f}, {0.28f, 0.5f, -0.28f}, {-0.28f, 0.5f, -0.28f}, {0, 1, 0});
+    addQuad(t, {-0.28f, -0.5f, -0.28f}, {0.28f, -0.5f, -0.28f}, {0.28f, -0.5f, 0.28f}, {-0.28f, -0.5f, 0.28f}, {0, -1, 0});
+    return t;
+}
+
+std::vector<Triangle> makeCharacter() {
+    std::vector<Triangle> t;
+    auto box = [&](Vec3 c, Vec3 s) {
+        const Vec3 h = s * 0.5f;
+        const Vec3 p000{c.x - h.x, c.y - h.y, c.z - h.z};
+        const Vec3 p100{c.x + h.x, c.y - h.y, c.z - h.z};
+        const Vec3 p110{c.x + h.x, c.y + h.y, c.z - h.z};
+        const Vec3 p010{c.x - h.x, c.y + h.y, c.z - h.z};
+        const Vec3 p001{c.x - h.x, c.y - h.y, c.z + h.z};
+        const Vec3 p101{c.x + h.x, c.y - h.y, c.z + h.z};
+        const Vec3 p111{c.x + h.x, c.y + h.y, c.z + h.z};
+        const Vec3 p011{c.x - h.x, c.y + h.y, c.z + h.z};
+        addQuad(t, p001, p101, p111, p011, {0, 0, 1});
+        addQuad(t, p100, p000, p010, p110, {0, 0, -1});
+        addQuad(t, p000, p001, p011, p010, {-1, 0, 0});
+        addQuad(t, p101, p100, p110, p111, {1, 0, 0});
+        addQuad(t, p011, p111, p110, p010, {0, 1, 0});
+        addQuad(t, p000, p100, p101, p001, {0, -1, 0});
+    };
+    box({0, 0.08f, 0}, {0.36f, 0.42f, 0.22f});
+    box({0, 0.46f, 0}, {0.28f, 0.26f, 0.26f});
+    box({-0.12f, -0.28f, 0}, {0.12f, 0.32f, 0.12f});
+    box({0.12f, -0.28f, 0}, {0.12f, 0.32f, 0.12f});
+    box({-0.26f, 0.10f, 0}, {0.10f, 0.28f, 0.10f});
+    box({0.26f, 0.10f, 0}, {0.10f, 0.28f, 0.10f});
+    return t;
+}
+
 std::vector<Triangle> makeSphere() {
     std::vector<Triangle> t;
     const int stacks = 10;
@@ -98,6 +144,9 @@ const std::vector<Triangle>& meshOf(MeshType type) {
     static const auto sphere = makeSphere();
     static const auto plane = makePlane();
     static const auto pyramid = makePyramid();
+    static const auto sprite = makeSprite();
+    static const auto character = makeCharacter();
+    static const auto capsule = makeCapsule();
     switch (type) {
         case MeshType::Sphere:
             return sphere;
@@ -105,6 +154,12 @@ const std::vector<Triangle>& meshOf(MeshType type) {
             return plane;
         case MeshType::Pyramid:
             return pyramid;
+        case MeshType::Sprite:
+            return sprite;
+        case MeshType::Character:
+            return character;
+        case MeshType::Capsule:
+            return capsule;
         case MeshType::Cube:
         default:
             return cube;
@@ -154,9 +209,9 @@ Image SoftwareRenderer::render(const Scene& scene) const {
 
     for (int y = 0; y < height_; ++y) {
         const float t = static_cast<float>(y) / static_cast<float>(height_ - 1);
-        const std::uint8_t r = static_cast<std::uint8_t>(18 + (38 - 18) * t);
-        const std::uint8_t g = static_cast<std::uint8_t>(20 + (48 - 20) * t);
-        const std::uint8_t b = static_cast<std::uint8_t>(28 + (62 - 28) * t);
+        const std::uint8_t r = static_cast<std::uint8_t>(clampf(scene.sky.r * 255.0f * (0.55f + 0.45f * t), 0, 255));
+        const std::uint8_t g = static_cast<std::uint8_t>(clampf(scene.sky.g * 255.0f * (0.55f + 0.45f * t), 0, 255));
+        const std::uint8_t b = static_cast<std::uint8_t>(clampf(scene.sky.b * 255.0f * (0.55f + 0.45f * t), 0, 255));
         for (int x = 0; x < width_; ++x) {
             const size_t i = static_cast<size_t>((y * width_ + x) * 3);
             image.rgb[i] = r;
@@ -172,9 +227,12 @@ Image SoftwareRenderer::render(const Scene& scene) const {
     const Vec3 light = scene.lightDir.normalized();
 
     for (const auto& object : scene.objects) {
-        if (!object.visible) continue;
+        if (!object.visible || object.opacity <= 0.04f) continue;
+        const float s = std::max(0.15f, object.size / 100.0f);
         const Mat4 model = Mat4::translation(object.transform.position) *
-                           Mat4::rotationEuler(object.transform.rotation) * Mat4::scale(object.transform.scale);
+                           Mat4::rotationEuler(object.transform.rotation) *
+                           Mat4::scale({object.transform.scale.x * s, object.transform.scale.y * s,
+                                        object.transform.scale.z * s});
         const Mat4 mvp = vp * model;
         for (const auto& tri : meshOf(object.mesh)) {
             ScreenVert sv[3];
@@ -202,10 +260,12 @@ Image SoftwareRenderer::render(const Scene& scene) const {
 
             const Vec3 n = (world[1].p - world[0].p).cross(world[2].p - world[0].p).normalized();
             const float ndot = std::max(0.12f, -n.dot(light));
-            const float shade = clampf(scene.ambient.r + 0.22f + ndot * 0.9f, 0.0f, 1.25f);
-            const std::uint8_t cr = static_cast<std::uint8_t>(clampf(object.color.r * shade, 0, 1) * 255);
-            const std::uint8_t cg = static_cast<std::uint8_t>(clampf(object.color.g * shade, 0, 1) * 255);
-            const std::uint8_t cb = static_cast<std::uint8_t>(clampf(object.color.b * shade, 0, 1) * 255);
+            const float shade = clampf(scene.ambient.r + 0.22f + ndot * 0.9f, 0.0f, 1.25f) * object.opacity;
+            Color tint = object.color;
+            if (!object.catalogId.empty() && object.mesh == MeshType::Sprite) tint = object.color;
+            const std::uint8_t cr = static_cast<std::uint8_t>(clampf(tint.r * shade, 0, 1) * 255);
+            const std::uint8_t cg = static_cast<std::uint8_t>(clampf(tint.g * shade, 0, 1) * 255);
+            const std::uint8_t cb = static_cast<std::uint8_t>(clampf(tint.b * shade, 0, 1) * 255);
 
             for (int y = minY; y <= maxY; ++y) {
                 for (int x = minX; x <= maxX; ++x) {

@@ -22,6 +22,12 @@ std::string prettyName(MeshType mesh) {
             return "Zemin";
         case MeshType::Pyramid:
             return "Piramit";
+        case MeshType::Sprite:
+            return "Karakter";
+        case MeshType::Character:
+            return "Figuran";
+        case MeshType::Capsule:
+            return "Kapsul";
         case MeshType::Cube:
         default:
             return "Kup";
@@ -43,6 +49,9 @@ GameObject makeObject(MeshType mesh) {
     } else if (mesh == MeshType::Pyramid) {
         object.color = {0.97f, 0.76f, 0.20f};
         object.transform.position.y = 0.5f;
+    } else if (mesh == MeshType::Sprite || mesh == MeshType::Character || mesh == MeshType::Capsule) {
+        object.transform.position.y = 0.55f;
+        object.costumes = {{"dur", ""}, {"adim1", ""}, {"adim2", ""}};
     } else {
         object.transform.position.y = 0.5f;
     }
@@ -132,6 +141,58 @@ void Engine::resetToDefault() {
     move["stack"] = moveStack;
     list.push(move);
 
+    Json catAnim = Json::object();
+    catAnim["target"] = "cat";
+    catAnim["hat"] = "when_start";
+    Json catStack = Json::array();
+    Json startA = Json::object();
+    startA["op"] = "start_anim";
+    Json startArgs = Json::object();
+    startArgs["fps"] = "8";
+    startA["args"] = startArgs;
+    catStack.push(startA);
+    Json say = Json::object();
+    say["op"] = "say";
+    Json sayArgs = Json::object();
+    sayArgs["text"] = "Merhaba! Ben Kedi.";
+    sayArgs["seconds"] = "3";
+    say["args"] = sayArgs;
+    catStack.push(say);
+    catAnim["stack"] = catStack;
+    list.push(catAnim);
+
+    Json catWalk = Json::object();
+    catWalk["target"] = "cat";
+    catWalk["hat"] = "every_frame";
+    Json catWalkStack = Json::array();
+    auto catKey = [&](const char* key, float x, float z) {
+        Json block = Json::object();
+        block["op"] = "if";
+        Json c = Json::object();
+        c["op"] = "key_down";
+        Json a = Json::object();
+        a["key"] = key;
+        c["args"] = a;
+        block["cond"] = c;
+        Json th = Json::array();
+        Json ch = Json::object();
+        ch["op"] = "change_position";
+        Json cha = Json::object();
+        cha["x"] = std::to_string(x);
+        cha["y"] = "0";
+        cha["z"] = std::to_string(z);
+        ch["args"] = cha;
+        th.push(ch);
+        block["then"] = th;
+        return block;
+    };
+    catWalkStack.push(catKey("KeyA", -0.07f, 0));
+    catWalkStack.push(catKey("KeyD", 0.07f, 0));
+    catWalkStack.push(catKey("KeyW", 0, -0.07f));
+    catWalkStack.push(catKey("KeyS", 0, 0.07f));
+    catWalk["stack"] = catWalkStack;
+    list.push(catWalk);
+
     scripts["scripts"] = list;
     vm_.load(scripts);
 }
@@ -145,6 +206,7 @@ Json Engine::stateJson() const {
     std::lock_guard<std::mutex> lock(mutex_);
     Json root = scene_.toJson();
     root["playing"] = playing_;
+    root["runtime"] = vm_.varsJson();
     return root;
 }
 
@@ -162,8 +224,27 @@ bool Engine::applyScene(const Json& json, std::string& error) {
 }
 
 Json Engine::addObject(const std::string& meshName) {
+    Json spec = Json::object();
+    spec["mesh"] = meshName;
+    return addObjectFromSpec(spec);
+}
+
+Json Engine::addObjectFromSpec(const Json& spec) {
     std::lock_guard<std::mutex> lock(mutex_);
-    GameObject object = makeObject(meshTypeFromName(meshName));
+    GameObject object = makeObject(meshTypeFromName(spec["mesh"].asString("cube")));
+    if (spec["name"].isString()) object.name = spec["name"].asString();
+    if (spec["catalogId"].isString()) {
+        object.catalogId = spec["catalogId"].asString();
+        object.color = catalogColor(object.catalogId);
+        if (object.mesh == MeshType::Cube) object.mesh = MeshType::Sprite;
+    }
+    if (spec["color"].isString()) object.color = Color::fromHex(spec["color"].asString());
+    if (spec["costumes"].isArray()) {
+        object.costumes.clear();
+        for (const auto& c : spec["costumes"].arrayItems()) {
+            object.costumes.push_back({c["name"].asString("kostum"), c["image"].asString()});
+        }
+    }
     const float offset = static_cast<float>(scene_.objects.size()) * 0.15f;
     if (object.mesh != MeshType::Plane) {
         object.transform.position.x += offset;
@@ -202,6 +283,20 @@ bool Engine::updateObject(const std::string& id, const Json& patch, std::string&
     applyVec(object->transform.rotation, patch["rotation"]);
     applyVec(object->transform.scale, patch["scale"]);
     applyVec(object->velocity, patch["velocity"]);
+    if (patch["catalogId"].isString()) object->catalogId = patch["catalogId"].asString();
+    if (patch["costumeIndex"].isNumber()) object->setCostume(patch["costumeIndex"].asInt());
+    if (patch["opacity"].isNumber()) object->opacity = patch["opacity"].asFloat(1);
+    if (patch["size"].isNumber()) object->size = patch["size"].asFloat(100);
+    if (patch["animating"].isBool()) object->animating = patch["animating"].asBool();
+    if (patch["animFps"].isNumber()) object->animFps = patch["animFps"].asFloat(6);
+    if (patch["sayText"].isString()) object->sayText = patch["sayText"].asString();
+    if (patch["costumes"].isArray()) {
+        object->costumes.clear();
+        for (const auto& c : patch["costumes"].arrayItems()) {
+            object->costumes.push_back({c["name"].asString("kostum"), c["image"].asString()});
+        }
+        if (object->costumeIndex >= static_cast<int>(object->costumes.size())) object->costumeIndex = 0;
+    }
     if (!playing_) snapshot_ = scene_;
     return true;
 }
@@ -255,11 +350,94 @@ void Engine::setKeys(const std::unordered_set<std::string>& keys) {
     keys_ = keys;
 }
 
+Json Engine::cloneObject(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    GameObject* src = scene_.find(id);
+    if (!src) return Json::object();
+    GameObject copy = *src;
+    copy.id.clear();
+    copy.name = src->name + " kopya";
+    copy.isClone = true;
+    copy.cloneOf = src->id;
+    copy.transform.position.x += 0.6f;
+    GameObject& added = scene_.add(copy);
+    const auto saved = vm_.save();
+    Json extra = Json::object();
+    extra["scripts"] = Json::array();
+    for (const auto& script : saved["scripts"].arrayItems()) {
+        if (script["target"].asString() == src->id || script["target"].asString() == src->name) {
+            Json s = script;
+            s["target"] = added.id;
+            extra["scripts"].push(s);
+        }
+    }
+    Json merged = saved;
+    for (const auto& s : extra["scripts"].arrayItems()) merged["scripts"].push(s);
+    vm_.load(merged);
+    Json out = Json::object();
+    out["id"] = added.id;
+    return out;
+}
+
+Json Engine::projectJson() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Json root = scene_.toJson();
+    root["scripts"] = vm_.save()["scripts"];
+    root["runtime"] = vm_.varsJson();
+    return root;
+}
+
+bool Engine::loadProject(const Json& json, std::string& error) {
+    try {
+        Scene next = Scene::fromJson(json);
+        std::lock_guard<std::mutex> lock(mutex_);
+        scene_ = std::move(next);
+        snapshot_ = scene_;
+        playing_ = false;
+        vm_.load(json);
+        return true;
+    } catch (const std::exception& ex) {
+        error = ex.what();
+        return false;
+    }
+}
+
+bool Engine::setBackdrop(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    scene_.applyBackdrop(id);
+    if (!playing_) snapshot_.applyBackdrop(id);
+    return true;
+}
+
 void Engine::tick(float dt) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!playing_) return;
     vm_.tick(scene_, dt, keys_);
     physics_.step(scene_, dt);
+    const auto pending = scene_.pendingClones;
+    scene_.pendingClones.clear();
+    for (const auto& sourceId : pending) {
+        GameObject* src = scene_.find(sourceId);
+        if (!src) continue;
+        GameObject copy = *src;
+        copy.id.clear();
+        copy.name = src->name + " kopya";
+        copy.isClone = true;
+        copy.cloneOf = src->id;
+        copy.transform.position.x += 0.45f;
+        GameObject& added = scene_.add(copy);
+        Json saved = vm_.save();
+        Json extras = Json::array();
+        for (const auto& script : saved["scripts"].arrayItems()) {
+            if (script["target"].asString() == src->id || script["target"].asString() == src->name) {
+                Json copyScript = script;
+                copyScript["target"] = added.id;
+                extras.push(copyScript);
+            }
+        }
+        for (const auto& item : extras.arrayItems()) saved["scripts"].push(item);
+        vm_.load(saved);
+    }
 }
 
 Image Engine::renderFrame() const {

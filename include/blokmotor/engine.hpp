@@ -19,11 +19,16 @@ public:
     Json stateJson() const;
     bool applyScene(const Json& json, std::string& error);
     Json addObject(const std::string& meshName);
+    Json addObjectFromSpec(const Json& spec);
     bool updateObject(const std::string& id, const Json& patch, std::string& error);
     bool removeObject(const std::string& id);
+    Json cloneObject(const std::string& id);
 
     Json scriptsJson() const;
     bool setScripts(const Json& json, std::string& error);
+    Json projectJson() const;
+    bool loadProject(const Json& json, std::string& error);
+    bool setBackdrop(const std::string& id);
 
     void play();
     void stop();

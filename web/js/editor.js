@@ -1,6 +1,27 @@
 import { api } from "./api.js";
 import { createViewport } from "./viewport.js";
 import { createBlockEditor } from "./blocks.js";
+import { BACKDROPS, CHARACTERS, characterCostumes, costumeImage } from "./library.js";
+import { openPaintEditor } from "./paint.js";
+
+const NOTES = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88, C5: 523.25 };
+let audioCtx = null;
+function playTone(name, volume = 80) {
+  try {
+    audioCtx = audioCtx || new AudioContext();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = name === "meow" ? "triangle" : name === "boom" ? "sawtooth" : "square";
+    osc.frequency.value = NOTES[name] || (name === "jump" ? 520 : name === "coin" ? 880 : name === "hit" ? 180 : 330);
+    gain.gain.value = Math.max(0.02, volume / 200);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.18);
+  } catch (_) {
+    /* ignore */
+  }
+}
 
 const hierarchyEl = document.getElementById("hierarchy");
 const inspectorEl = document.getElementById("inspector");
@@ -51,9 +72,17 @@ function renderHierarchy() {
     swatch.style.background = object.color?.hex || "#888";
     const name = document.createElement("span");
     name.textContent = object.name;
+    if (object.catalogId) {
+      const img = document.createElement("img");
+      img.src = (object.costumes || [])[object.costumeIndex || 0]?.image || costumeImage(object.catalogId, object.costumeIndex || 0);
+      img.alt = "";
+      img.style.width = "18px";
+      img.style.height = "18px";
+      swatch.replaceWith(img);
+    }
     const kind = document.createElement("span");
     kind.className = "kind";
-    kind.textContent = object.mesh;
+    kind.textContent = object.catalogId || object.mesh;
     item.append(swatch, name, kind);
     item.addEventListener("click", () => selectObject(object.id));
     hierarchyEl.appendChild(item);
@@ -128,6 +157,18 @@ function renderInspector() {
     box.appendChild(row);
     inspectorEl.appendChild(box);
   };
+  if (object.sayText) {
+    const say = document.createElement("div");
+    say.className = "empty";
+    say.textContent = `Konuşuyor: ${object.sayText}`;
+    inspectorEl.appendChild(say);
+  }
+  if ((object.costumes || []).length) {
+    const row = document.createElement("label");
+    row.className = "field";
+    row.textContent = `Kostüm (${(object.costumeIndex || 0) + 1}/${object.costumes.length})`;
+    inspectorEl.appendChild(row);
+  }
   vecRow("Konum", object.position, "position");
   vecRow("Döndürme", object.rotation, "rotation");
   vecRow("Ölçek", object.scale, "scale");
@@ -181,6 +222,7 @@ async function refresh() {
   viewport.sync(state);
   renderHierarchy();
   renderInspector();
+  renderSpeech(state.objects);
   setPlaying(!!state.playing);
 }
 
@@ -197,6 +239,119 @@ btnPlay.addEventListener("click", async () => {
 });
 btnStop.addEventListener("click", async () => {
   await api.stop();
+  await refresh();
+});
+function renderSpeech(objects) {
+  const log = document.getElementById("speech-log");
+  if (!log) return;
+  log.innerHTML = "";
+  for (const object of objects || []) {
+    if (!object.sayText) continue;
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.textContent = `${object.name}: ${object.sayText}`;
+    log.appendChild(b);
+  }
+}
+
+function openLibrary() {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.innerHTML = `
+    <div class="modal-card">
+      <header>
+        <h3>Kütüphane — karakterler ve dekorlar</h3>
+        <button type="button" class="btn ghost" data-close>Kapat</button>
+      </header>
+      <div class="lib-tabs">
+        <button type="button" class="btn primary" data-tab="chars">Karakterler (${CHARACTERS.length})</button>
+        <button type="button" class="btn" data-tab="backs">Dekorlar (${BACKDROPS.length})</button>
+      </div>
+      <div class="lib-grid" id="lib-grid"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  const grid = modal.querySelector("#lib-grid");
+  const showChars = () => {
+    grid.innerHTML = "";
+    for (const ch of CHARACTERS) {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "lib-card";
+      card.innerHTML = `<img alt="${ch.name}" src="${costumeImage(ch.id, 0)}" /><span>${ch.name}</span>`;
+      card.addEventListener("click", async () => {
+        const created = await api.addObject({
+          mesh: "sprite",
+          name: ch.name,
+          catalogId: ch.id,
+          costumes: characterCostumes(ch.id),
+        });
+        selectedId = created.id;
+        modal.remove();
+        await refresh();
+      });
+      grid.appendChild(card);
+    }
+  };
+  const showBacks = () => {
+    grid.innerHTML = "";
+    for (const bg of BACKDROPS) {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "lib-card";
+      card.innerHTML = `<div class="thumb" style="background:linear-gradient(${bg.sky},${bg.ground})"></div><span>${bg.name}</span>`;
+      card.addEventListener("click", async () => {
+        await api.setBackdrop(bg.id);
+        modal.remove();
+        await refresh();
+      });
+      grid.appendChild(card);
+    }
+  };
+  modal.querySelector('[data-tab="chars"]').addEventListener("click", (e) => {
+    modal.querySelectorAll(".lib-tabs .btn").forEach((b) => b.classList.remove("primary"));
+    e.currentTarget.classList.add("primary");
+    showChars();
+  });
+  modal.querySelector('[data-tab="backs"]').addEventListener("click", (e) => {
+    modal.querySelectorAll(".lib-tabs .btn").forEach((b) => b.classList.remove("primary"));
+    e.currentTarget.classList.add("primary");
+    showBacks();
+  });
+  modal.querySelector("[data-close]").addEventListener("click", () => modal.remove());
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.remove();
+  });
+  showChars();
+}
+
+document.getElementById("btn-library").addEventListener("click", openLibrary);
+document.getElementById("btn-paint").addEventListener("click", () => {
+  const object = selected();
+  if (!object) return;
+  openPaintEditor({
+    object,
+    onSave: async (costumes, index) => {
+      await api.updateObject(object.id, { costumes, costumeIndex: index, mesh: object.mesh === "cube" ? "sprite" : object.mesh });
+      await refresh();
+    },
+  });
+});
+document.getElementById("btn-save").addEventListener("click", async () => {
+  const project = await api.project();
+  project.scripts = blocks.serialize().scripts;
+  const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "blokmotor-proje.json";
+  a.click();
+});
+document.getElementById("btn-load").addEventListener("click", () => document.getElementById("file-load").click());
+document.getElementById("file-load").addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const project = JSON.parse(await file.text());
+  await api.loadProject(project);
+  blocks.load(project);
   await refresh();
 });
 document.getElementById("btn-cube").addEventListener("click", () => addMesh("cube"));
@@ -226,6 +381,11 @@ setInterval(async () => {
       state = await api.state();
       viewport.sync(state);
       statusCount.textContent = String(state.objects?.length || 0);
+      renderSpeech(state.objects);
+      if (state.lastSound && state.lastSound !== playTone.last) {
+        playTone.last = state.lastSound;
+        playTone(state.lastSound, state.volume);
+      }
       if (selected()) renderInspector();
     } catch (_) {
       /* keep editor alive */

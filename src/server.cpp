@@ -258,7 +258,7 @@ void EditorServer::handleClient(int fd) {
             ::close(fd);
             return;
         }
-        sendJson(fd, 200, engine_.addObject(json["mesh"].asString("cube")));
+        sendJson(fd, 200, engine_.addObjectFromSpec(json));
     } else if (path.rfind("/api/objects/", 0) == 0 && (method == "PATCH" || method == "PUT")) {
         Json json;
         if (!parseBody(json)) {
@@ -315,6 +315,27 @@ void EditorServer::handleClient(int fd) {
         Json ok = Json::object();
         ok["ok"] = true;
         sendJson(fd, 200, ok);
+    } else if (path == "/api/project" && method == "GET") {
+        sendJson(fd, 200, engine_.projectJson());
+    } else if (path == "/api/project" && (method == "PUT" || method == "POST")) {
+        Json json;
+        if (!parseBody(json)) {
+            ::close(fd);
+            return;
+        }
+        std::string error;
+        if (!engine_.loadProject(json, error)) sendError(fd, 400, error);
+        else sendJson(fd, 200, engine_.projectJson());
+    } else if (path == "/api/backdrop" && method == "POST") {
+        Json json;
+        if (!parseBody(json)) {
+            ::close(fd);
+            return;
+        }
+        engine_.setBackdrop(json["id"].asString("cayir"));
+        sendJson(fd, 200, engine_.stateJson());
+    } else if (path.rfind("/api/clone/", 0) == 0 && method == "POST") {
+        sendJson(fd, 200, engine_.cloneObject(lastSegment(path)));
     } else if (path == "/api/reset" && method == "POST") {
         engine_.resetToDefault();
         sendJson(fd, 200, engine_.stateJson());

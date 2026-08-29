@@ -1,5 +1,26 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { backdropStyle, costumeImage } from "./library.js";
+
+const loader = new THREE.TextureLoader();
+const texCache = new Map();
+
+function textureOf(url) {
+  if (!url) return null;
+  if (texCache.has(url)) return texCache.get(url);
+  const tex = loader.load(url);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  texCache.set(url, tex);
+  return tex;
+}
+
+function costumeUrl(object) {
+  const costumes = object.costumes || [];
+  const item = costumes[object.costumeIndex || 0];
+  if (item?.image) return item.image;
+  if (object.catalogId) return costumeImage(object.catalogId, object.costumeIndex || 0);
+  return "";
+}
 
 function hexColor(color) {
   if (!color) return 0xcccccc;
@@ -8,22 +29,30 @@ function hexColor(color) {
 }
 
 function makeMesh(object) {
-  let geo;
-  if (object.mesh === "sphere") geo = new THREE.SphereGeometry(0.5, 28, 18);
-  else if (object.mesh === "plane") geo = new THREE.PlaneGeometry(1, 1);
-  else if (object.mesh === "pyramid") geo = new THREE.ConeGeometry(0.62, 1, 4);
-  else geo = new THREE.BoxGeometry(1, 1, 1);
-
+  const url = costumeUrl(object);
   const mat = new THREE.MeshStandardMaterial({
-    color: hexColor(object.color),
+    color: url ? 0xffffff : hexColor(object.color),
     roughness: 0.42,
     metalness: 0.08,
+    transparent: true,
+    opacity: object.opacity ?? 1,
+    map: textureOf(url) || null,
   });
-  const mesh = new THREE.Mesh(geo, mat);
-  if (object.mesh === "plane") {
+  let mesh;
+  if (object.mesh === "sphere") mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 28, 18), mat);
+  else if (object.mesh === "plane") {
+    mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     mesh.rotation.x = -Math.PI / 2;
     mat.side = THREE.DoubleSide;
-  }
+  } else if (object.mesh === "pyramid") mesh = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1, 4), mat);
+  else if (object.mesh === "sprite") {
+    mat.side = THREE.DoubleSide;
+    mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.4), mat);
+    mesh.userData.billboard = true;
+  } else if (object.mesh === "character" || object.mesh === "capsule") {
+    mesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 6, 10), mat);
+  } else mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
+
   mesh.castShadow = object.mesh !== "plane";
   mesh.receiveShadow = true;
   mesh.userData.id = object.id;
@@ -111,28 +140,37 @@ function createWebGLViewport(canvas) {
   }
 
   function sync(state) {
+    const bg = backdropStyle(state.backdrop || "cayir");
+    scene.background = new THREE.Color(bg.sky);
+    scene.fog = new THREE.Fog(new THREE.Color(bg.sky), 16, 46);
     const seen = new Set();
     for (const object of state.objects || []) {
       seen.add(object.id);
       let mesh = meshes.get(object.id);
-      if (!mesh || mesh.userData.mesh !== object.mesh) {
+      const costumeKey = `${object.mesh}|${object.catalogId}|${object.costumeIndex}|${(object.costumes || [])[object.costumeIndex || 0]?.image || ""}`;
+      if (!mesh || mesh.userData.mesh !== object.mesh || mesh.userData.costumeKey !== costumeKey) {
         if (mesh) scene.remove(mesh);
         mesh = makeMesh(object);
         mesh.userData.mesh = object.mesh;
+        mesh.userData.costumeKey = costumeKey;
         meshes.set(object.id, mesh);
         scene.add(mesh);
       }
       mesh.visible = object.visible !== false;
       mesh.position.set(object.position.x, object.position.y, object.position.z);
-      if (object.mesh !== "plane") {
+      if (object.mesh !== "plane" && !mesh.userData.billboard) {
         mesh.rotation.set(
           THREE.MathUtils.degToRad(object.rotation.x),
           THREE.MathUtils.degToRad(object.rotation.y),
           THREE.MathUtils.degToRad(object.rotation.z)
         );
       }
-      mesh.scale.set(object.scale.x, object.scale.y, object.scale.z);
-      mesh.material.color.setHex(hexColor(object.color?.hex || object.color));
+      const s = Math.max(0.15, (object.size || 100) / 100);
+      mesh.scale.set(object.scale.x * s, object.scale.y * s, object.scale.z * s);
+      if (mesh.material) {
+        mesh.material.opacity = object.opacity ?? 1;
+        if (!mesh.material.map) mesh.material.color.setHex(hexColor(object.color?.hex || object.color));
+      }
     }
     for (const [id, mesh] of meshes) {
       if (!seen.has(id)) {
@@ -148,6 +186,9 @@ function createWebGLViewport(canvas) {
   function tick() {
     resize();
     controls.update();
+    for (const mesh of meshes.values()) {
+      if (mesh.userData.billboard) mesh.lookAt(camera.position);
+    }
     renderer.render(scene, camera);
     frames += 1;
     const now = performance.now();
