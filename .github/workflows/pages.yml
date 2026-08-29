@@ -31,4 +31,11 @@ jobs:
           git add -A
           git commit -m "Publish BlokMotor site"
           git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push -f origin gh-pages
+          for attempt in 1 2 3 4; do
+            if git push -f origin gh-pages; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "gh-pages push failed after retries; site files are still valid."
+          exit 1
