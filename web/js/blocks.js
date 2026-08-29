@@ -41,6 +41,7 @@ export const DEFS = [
   { op: "set_costume", kind: "stack", cat: "looks", cls: "looks", title: "kostüm no", fields: [{ key: "index", type: "number", value: "1" }] },
   { op: "start_anim", kind: "stack", cat: "looks", cls: "looks", title: "animasyonu başlat", fields: [{ key: "fps", type: "number", value: "8" }] },
   { op: "stop_anim", kind: "stack", cat: "looks", cls: "looks", title: "animasyonu durdur" },
+  { op: "play_anim", kind: "stack", cat: "looks", cls: "looks", title: "animasyon", fields: [{ key: "name", type: "select", options: ["idle", "walk", "jump", "wave"] }] },
   { op: "set_backdrop", kind: "stack", cat: "looks", cls: "looks", title: "dekor", fields: [{ key: "name", type: "select", options: BACKS }] },
   { op: "next_backdrop", kind: "stack", cat: "looks", cls: "looks", title: "sonraki dekor" },
   { op: "set_layer", kind: "stack", cat: "looks", cls: "looks", title: "katman", fields: [{ key: "value", type: "number", value: "0" }] },

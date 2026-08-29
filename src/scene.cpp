@@ -227,12 +227,46 @@ void Scene::applyBackdrop(const std::string& id) {
         {"dag", {0.40f, 0.52f, 0.68f}},
     };
     sky = {0.07f, 0.09f, 0.14f};
+    Color groundCol{0.28f, 0.42f, 0.34f};
     for (const auto& item : skies) {
         if (id == item.name) {
             sky = item.color;
             break;
         }
     }
+    static const Sky grounds[] = {
+        {"cayir", {0.24f, 0.54f, 0.29f}},
+        {"gece", {0.10f, 0.12f, 0.18f}},
+        {"gunbatimi", {0.42f, 0.22f, 0.16f}},
+        {"uzay", {0.10f, 0.08f, 0.16f}},
+        {"deniz", {0.11f, 0.30f, 0.45f}},
+        {"col", {0.77f, 0.54f, 0.23f}},
+        {"kar", {0.90f, 0.94f, 0.98f}},
+        {"sehir", {0.16f, 0.19f, 0.25f}},
+        {"orman", {0.11f, 0.23f, 0.13f}},
+        {"magara", {0.16f, 0.13f, 0.11f}},
+        {"kale", {0.23f, 0.25f, 0.30f}},
+        {"sahne", {0.16f, 0.11f, 0.21f}},
+        {"sualti", {0.04f, 0.16f, 0.27f}},
+        {"volkan", {0.17f, 0.05f, 0.03f}},
+        {"bulutlar", {0.85f, 0.90f, 0.96f}},
+        {"ay", {0.29f, 0.29f, 0.32f}},
+        {"ciftlik", {0.42f, 0.58f, 0.28f}},
+        {"stadyum", {0.12f, 0.28f, 0.14f}},
+        {"sinif", {0.43f, 0.40f, 0.31f}},
+        {"labirent", {0.11f, 0.13f, 0.09f}},
+        {"neon", {0.07f, 0.02f, 0.14f}},
+        {"sonbahar", {0.48f, 0.25f, 0.09f}},
+        {"gol", {0.18f, 0.36f, 0.44f}},
+        {"dag", {0.24f, 0.34f, 0.44f}},
+    };
+    for (const auto& item : grounds) {
+        if (id == item.name) {
+            groundCol = item.color;
+            break;
+        }
+    }
+    if (GameObject* ground = find("ground")) ground->color = groundCol;
 }
 
 Json Scene::toJson() const {
@@ -276,6 +310,7 @@ Json Scene::toJson() const {
         j["sayTime"] = object.sayTime;
         j["animating"] = object.animating;
         j["animFps"] = object.animFps;
+        j["animClip"] = object.animClip;
         j["isClone"] = object.isClone;
         j["cloneOf"] = object.cloneOf;
         Json costumes = Json::array();
@@ -306,7 +341,6 @@ Scene Scene::fromJson(const Json& json) {
         scene.camera.refreshOrbit();
     }
     scene.gravity = json["gravity"].asFloat(scene.gravity);
-    if (json["backdrop"].isString()) scene.applyBackdrop(json["backdrop"].asString());
     scene.timer = json["timer"].asFloat(0);
     scene.volume = json["volume"].asFloat(80);
     if (json["objects"].isArray()) {
@@ -331,6 +365,7 @@ Scene Scene::fromJson(const Json& json) {
             object.sayText = item["sayText"].asString();
             object.animating = item["animating"].asBool(false);
             object.animFps = item["animFps"].asFloat(6);
+            object.animClip = item["animClip"].asString("idle");
             object.isClone = item["isClone"].asBool(false);
             object.cloneOf = item["cloneOf"].asString();
             if (item["costumes"].isArray()) {
@@ -341,12 +376,12 @@ Scene Scene::fromJson(const Json& json) {
             scene.objects.push_back(object);
         }
     }
+    if (json["backdrop"].isString()) scene.applyBackdrop(json["backdrop"].asString());
     return scene;
 }
 
 Scene Scene::makeDefault() {
     Scene scene;
-    scene.applyBackdrop("cayir");
     scene.camera.refreshOrbit();
 
     GameObject ground;
@@ -392,6 +427,7 @@ Scene Scene::makeDefault() {
     cat.color = {0.96f, 0.62f, 0.28f};
     cat.costumes = {{"dur", ""}, {"adim1", ""}, {"adim2", ""}};
     scene.objects.push_back(cat);
+    scene.applyBackdrop("cayir");
 
     return scene;
 }

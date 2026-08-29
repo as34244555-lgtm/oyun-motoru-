@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>BlokMotor Oyun</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0c1016; font-family: Outfit, Segoe UI, sans-serif; }
+    #view { width: 100%; height: 100%; display: block; }
+    .hud { position: fixed; left: 12px; top: 12px; color: #fff; text-shadow: 0 1px 4px #000; pointer-events: none; }
+    .speech { position: fixed; left: 12px; top: 48px; display: grid; gap: 6px; pointer-events: none; }
+    .bubble { background: #fff; color: #222; border-radius: 12px; padding: 6px 10px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div class="hud" id="hud">BlokMotor</div>
+  <div class="speech" id="speech"></div>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import { createJsEngine } from "./js/engine-js.js";
+    import { createViewport } from "./js/viewport.js";
+
+    const engine = createJsEngine();
+    const viewport = createViewport(document.getElementById("view"));
+    const keys = new Set();
+    const embedded = document.getElementById("project-data");
+    if (embedded?.textContent.trim()) {
+      await engine.loadProject(JSON.parse(embedded.textContent));
+    } else {
+      try {
+        const res = await fetch("project.json", { cache: "no-store" });
+        if (res.ok) await engine.loadProject(await res.json());
+      } catch (_) { /* default scene */ }
+    }
+    await engine.play(await engine.scripts());
+
+    window.addEventListener("keydown", (e) => {
+      keys.add(e.code === "Space" ? "Space" : e.code);
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
+    });
+    window.addEventListener("keyup", (e) => keys.delete(e.code === "Space" ? "Space" : e.code));
+
+    setInterval(async () => {
+      await engine.input([...keys]);
+      const state = engine.state();
+      viewport.sync(state);
+      const speech = document.getElementById("speech");
+      speech.innerHTML = "";
+      for (const o of state.objects || []) {
+        if (!o.sayText) continue;
+        const b = document.createElement("div");
+        b.className = "bubble";
+        b.textContent = `${o.name}: ${o.sayText}`;
+        speech.appendChild(b);
+      }
+    }, 33);
+  </script>
+  <script type="application/json" id="project-data"></script>
+</body>
+</html>

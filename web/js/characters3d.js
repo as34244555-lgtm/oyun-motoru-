@@ -43,10 +43,23 @@ export function characterKind(catalogId) {
 function mat(color, extra = {}) {
   return new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.42,
-    metalness: 0.1,
+    roughness: 0.38,
+    metalness: 0.12,
+    envMapIntensity: 0.6,
     ...extra,
   });
+}
+
+function remember(mesh) {
+  mesh.userData.rest = {
+    x: mesh.position.x,
+    y: mesh.position.y,
+    z: mesh.position.z,
+    rx: mesh.rotation.x,
+    ry: mesh.rotation.y,
+    rz: mesh.rotation.z,
+  };
+  return mesh;
 }
 
 function box(w, h, d, color, x, y, z, rx = 0, ry = 0, rz = 0) {
@@ -55,23 +68,31 @@ function box(w, h, d, color, x, y, z, rx = 0, ry = 0, rz = 0) {
   mesh.rotation.set(rx, ry, rz);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  return mesh;
+  return remember(mesh);
 }
 
-function sphere(r, color, x, y, z, seg = 18) {
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, seg, Math.max(10, seg - 4)), mat(color));
+function sphere(r, color, x, y, z, seg = 22) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, seg, Math.max(12, seg - 4)), mat(color));
   mesh.position.set(x, y, z);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  return mesh;
+  return remember(mesh);
+}
+
+function capsule(r, len, color, x, y, z) {
+  const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 10), mat(color));
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return remember(mesh);
 }
 
 function cone(r, h, color, x, y, z, rx = 0) {
-  const mesh = new THREE.Mesh(new THREE.ConeGeometry(r, h, 10), mat(color));
+  const mesh = new THREE.Mesh(new THREE.ConeGeometry(r, h, 14), mat(color));
   mesh.position.set(x, y, z);
   mesh.rotation.x = rx;
   mesh.castShadow = true;
-  return mesh;
+  return remember(mesh);
 }
 
 function addEyes(group, x, y, z, spread = 0.1, r = 0.035) {
@@ -82,12 +103,12 @@ function addEyes(group, x, y, z, spread = 0.1, r = 0.035) {
 }
 
 function humanoid(group, color, dark, light, tall = 1) {
-  const body = box(0.34, 0.40 * tall, 0.20, color, 0, 0.42 * tall, 0);
-  const head = sphere(0.15, light, 0, 0.74 * tall, 0);
-  const armL = box(0.10, 0.28 * tall, 0.10, dark, -0.24, 0.42 * tall, 0);
-  const armR = box(0.10, 0.28 * tall, 0.10, dark, 0.24, 0.42 * tall, 0);
-  const legL = box(0.11, 0.30 * tall, 0.11, dark, -0.10, 0.10 * tall, 0);
-  const legR = box(0.11, 0.30 * tall, 0.11, dark, 0.10, 0.10 * tall, 0);
+  const body = box(0.34, 0.40 * tall, 0.22, color, 0, 0.42 * tall, 0);
+  const head = sphere(0.155, light, 0, 0.74 * tall, 0, 24);
+  const armL = capsule(0.055, 0.22 * tall, dark, -0.24, 0.42 * tall, 0);
+  const armR = capsule(0.055, 0.22 * tall, dark, 0.24, 0.42 * tall, 0);
+  const legL = capsule(0.06, 0.24 * tall, dark, -0.10, 0.12 * tall, 0);
+  const legR = capsule(0.06, 0.24 * tall, dark, 0.10, 0.12 * tall, 0);
   group.add(body, head, armL, armR, legL, legR);
   addEyes(group, 0, 0.76 * tall, 0.12);
   group.userData.limbs = { armL, armR, legL, legR, head, body };
@@ -241,22 +262,47 @@ export function makeCharacter3D(object) {
   return group;
 }
 
-export function poseCharacter(group, object) {
+function restOf(mesh) {
+  return mesh?.userData?.rest || { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+}
+
+function place(mesh, dx, dy, dz, rx, ry, rz) {
+  if (!mesh) return;
+  const r = restOf(mesh);
+  mesh.position.set(r.x + dx, r.y + dy, r.z + dz);
+  mesh.rotation.set(r.rx + rx, r.ry + ry, r.rz + rz);
+}
+
+export function poseCharacter(group, object, time = 0) {
   const limbs = group.userData.limbs || {};
-  const swing = ((object.costumeIndex || 0) % 2 === 0 ? 1 : -1) * (object.animating ? 0.55 : 0.12);
-  if (limbs.armL) limbs.armL.rotation.x = swing;
-  if (limbs.armR) limbs.armR.rotation.x = -swing;
-  if (limbs.legL) limbs.legL.rotation.x = -swing;
-  if (limbs.legR) limbs.legR.rotation.x = swing;
-  if (limbs.fl) limbs.fl.rotation.x = swing;
-  if (limbs.fr) limbs.fr.rotation.x = -swing;
-  if (limbs.bl) limbs.bl.rotation.x = -swing;
-  if (limbs.br) limbs.br.rotation.x = swing;
-  if (limbs.wingL) limbs.wingL.rotation.z = 0.35 + swing;
-  if (limbs.wingR) limbs.wingR.rotation.z = -0.35 - swing;
-  if (limbs.tail) limbs.tail.rotation.y = swing * 0.6;
-  if (group.userData.kind === "ghost" && limbs.body) {
-    limbs.body.position.y = 0.46 + Math.sin((object.costumeIndex || 0) * 1.2) * 0.04;
+  const vx = object.velocity?.x || 0;
+  const vy = object.velocity?.y || 0;
+  const vz = object.velocity?.z || 0;
+  const speed = Math.hypot(vx, vz);
+  const clip = object.animClip || (vy > 1.2 ? "jump" : speed > 0.08 || object.animating ? "walk" : "idle");
+  const walkT = time * (clip === "walk" ? 9 : clip === "jump" ? 6 : 2.2);
+  const swing = clip === "idle" ? Math.sin(walkT) * 0.1 : Math.sin(walkT) * 0.72;
+  const breath = Math.sin(time * 2.4) * 0.018;
+  const hop = clip === "jump" ? Math.max(0, vy) * 0.02 : 0;
+  place(limbs.body, 0, breath + hop, 0, 0, 0, 0);
+  place(limbs.head, 0, breath * 0.6 + hop, 0, Math.sin(walkT * 0.5) * 0.06, Math.sin(time) * 0.08, 0);
+  place(limbs.armL, 0, 0, 0, swing, 0, clip === "wave" ? 1.2 : 0);
+  place(limbs.armR, 0, 0, 0, -swing, 0, 0);
+  place(limbs.legL, 0, 0, 0, -swing, 0, 0);
+  place(limbs.legR, 0, 0, 0, swing, 0, 0);
+  place(limbs.fl, 0, 0, 0, swing, 0, 0);
+  place(limbs.fr, 0, 0, 0, -swing, 0, 0);
+  place(limbs.bl, 0, 0, 0, -swing, 0, 0);
+  place(limbs.br, 0, 0, 0, swing, 0, 0);
+  place(limbs.wingL, 0, 0, 0, 0, 0, 0.4 + Math.sin(walkT * 1.4) * 0.55);
+  place(limbs.wingR, 0, 0, 0, 0, 0, -0.4 - Math.sin(walkT * 1.4) * 0.55);
+  place(limbs.tail, 0, 0, 0, 0, Math.sin(walkT) * 0.5, 0);
+  if (group.userData.kind === "ghost") {
+    place(limbs.body, 0, Math.sin(time * 2) * 0.06, 0, 0, 0, 0);
+  }
+  if (group.userData.kind === "fish") {
+    place(limbs.body, 0, Math.sin(time * 3) * 0.04, 0, 0, Math.sin(time * 4) * 0.2, 0);
+    place(limbs.tail, 0, 0, 0, 0, Math.sin(time * 8) * 0.6, 0);
   }
 }
 

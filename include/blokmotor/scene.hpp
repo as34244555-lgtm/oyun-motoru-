@@ -72,6 +72,7 @@ struct GameObject {
     bool animating = false;
     float animTimer = 0;
     float animFps = 6;
+    std::string animClip = "idle";
     bool isClone = false;
     std::string cloneOf;
     bool penDown = false;

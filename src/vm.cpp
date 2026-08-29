@@ -441,8 +441,13 @@ void BlockVM::runBlock(Context& ctx, const Block& block) {
     } else if (op == "start_anim") {
         obj->animating = true;
         obj->animFps = argf(block, "fps", 6);
+        obj->animClip = "walk";
     } else if (op == "stop_anim") {
         obj->animating = false;
+        obj->animClip = "idle";
+    } else if (op == "play_anim") {
+        obj->animClip = arg(block, "name", "walk");
+        obj->animating = obj->animClip != "idle";
     } else if (op == "set_backdrop") {
         if (ctx.scene) ctx.scene->applyBackdrop(arg(block, "name", "cayir"));
     } else if (op == "next_backdrop") {

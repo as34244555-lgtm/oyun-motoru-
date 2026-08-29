@@ -207,6 +207,11 @@ int main() {
         const Json cam = engine.stateJson()["camera"];
         CHECK(std::fabs(cam["yaw"].asFloat() - 90) < 0.01f);
         CHECK(cam["position"]["x"].asFloat() > 1.0f);
+        Scene themed = Scene::makeDefault();
+        CHECK(themed.find("ground") != nullptr);
+        CHECK(themed.find("ground")->color.g > 0.4f);
+        themed.applyBackdrop("uzay");
+        CHECK(themed.find("ground")->color.r < 0.22f);
         CHECK(characterKindOf("kedi") == std::string("quadruped"));
         CHECK(characterKindOf("ninja") == std::string("ninja"));
         CHECK(characterKindOf("robot") == std::string("robot"));

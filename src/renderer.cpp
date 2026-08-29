@@ -390,8 +390,14 @@ Image SoftwareRenderer::render(const Scene& scene) const {
     for (const auto& object : scene.objects) {
         if (!object.visible || object.opacity <= 0.04f) continue;
         const float s = std::max(0.15f, object.size / 100.0f);
-        const Mat4 model = Mat4::translation(object.transform.position) *
-                           Mat4::rotationEuler(object.transform.rotation) *
+        const float bob = (object.animating || object.animClip == "walk" || object.animClip == "jump")
+                              ? 0.045f * std::sin(object.animTimer * 6.0f + static_cast<float>(object.costumeIndex))
+                              : 0.012f * std::sin(scene.timer * 2.4f);
+        const Vec3 drawPos = (object.mesh == MeshType::Character || object.mesh == MeshType::Sprite)
+                                 ? Vec3{object.transform.position.x, object.transform.position.y + bob,
+                                        object.transform.position.z}
+                                 : object.transform.position;
+        const Mat4 model = Mat4::translation(drawPos) * Mat4::rotationEuler(object.transform.rotation) *
                            Mat4::scale({object.transform.scale.x * s, object.transform.scale.y * s,
                                         object.transform.scale.z * s});
         const Mat4 mvp = vp * model;

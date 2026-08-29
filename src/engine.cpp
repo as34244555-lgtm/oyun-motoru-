@@ -295,6 +295,7 @@ bool Engine::updateObject(const std::string& id, const Json& patch, std::string&
     if (patch["size"].isNumber()) object->size = patch["size"].asFloat(100);
     if (patch["animating"].isBool()) object->animating = patch["animating"].asBool();
     if (patch["animFps"].isNumber()) object->animFps = patch["animFps"].asFloat(6);
+    if (patch["animClip"].isString()) object->animClip = patch["animClip"].asString();
     if (patch["sayText"].isString()) object->sayText = patch["sayText"].asString();
     if (patch["costumes"].isArray()) {
         object->costumes.clear();

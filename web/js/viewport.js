@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { backdropStyle } from "./library.js";
 import { makeCharacter3D, poseCharacter } from "./characters3d.js";
+import { createWorld } from "./world3d.js";
 
 function hexColor(color) {
   if (!color) return 0xcccccc;
@@ -52,7 +53,7 @@ function createSoftwareViewport(canvas) {
   let last = performance.now();
   let fps = 0;
   const tick = () => {
-    img.src = `/api/frame.bmp?t=${Date.now()}`;
+    img.src = `api/frame.bmp?t=${Date.now()}`;
     frames += 1;
     const now = performance.now();
     if (now - last > 500) {
@@ -81,32 +82,44 @@ export function createViewport(canvas) {
 
 function createWebGLViewport(canvas) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d1218);
-  scene.fog = new THREE.Fog(0x0d1218, 18, 42);
+  scene.background = new THREE.Color(0x73b8f2);
+  scene.fog = new THREE.Fog(0x73b8f2, 22, 52);
 
-  const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 80);
+  const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 90);
   camera.position.set(5.4, 3.6, 5.8);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
 
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
   controls.target.set(0, 0.6, 0);
 
-  scene.add(new THREE.AmbientLight(0x9aa7c2, 0.55));
-  const key = new THREE.DirectionalLight(0xfff4e5, 1.15);
-  key.position.set(6, 10, 4);
+  scene.add(new THREE.HemisphereLight(0xc8e4ff, 0x3d4a3a, 0.72));
+  const key = new THREE.DirectionalLight(0xfff4e5, 1.2);
+  key.position.set(7, 12, 5);
   key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.camera.near = 1;
+  key.shadow.camera.far = 40;
+  key.shadow.camera.left = -14;
+  key.shadow.camera.right = 14;
+  key.shadow.camera.top = 14;
+  key.shadow.camera.bottom = -14;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0x6ec6ff, 0.35);
-  fill.position.set(-8, 4, -6);
-  scene.add(fill);
+  scene.add(new THREE.DirectionalLight(0x8ecbff, 0.28).translateX(-8).translateY(4).translateZ(-6));
 
-  const grid = new THREE.GridHelper(20, 20, 0x3a4658, 0x223042);
-  grid.position.y = 0.001;
-  scene.add(grid);
+  const world = createWorld();
+  scene.add(world.root);
+  world.rebuild("cayir");
+
+  let clock = 0;
+  let lastState = null;
 
   const meshes = new Map();
   let controlsDragging = false;
@@ -127,9 +140,11 @@ function createWebGLViewport(canvas) {
   }
 
   function sync(state) {
+    lastState = state;
     const bg = backdropStyle(state.backdrop || "cayir");
+    world.rebuild(state.backdrop || "cayir");
     scene.background = new THREE.Color(bg.sky);
-    scene.fog = new THREE.Fog(new THREE.Color(bg.sky), 16, 46);
+    scene.fog = new THREE.Fog(new THREE.Color(bg.sky), 22, 52);
     const seen = new Set();
     for (const object of state.objects || []) {
       seen.add(object.id);
@@ -143,7 +158,7 @@ function createWebGLViewport(canvas) {
         meshes.set(object.id, mesh);
         scene.add(mesh);
       }
-      mesh.visible = object.visible !== false;
+      mesh.visible = object.visible !== false && object.mesh !== "plane";
       mesh.position.set(object.position.x, object.position.y, object.position.z);
       if (object.mesh !== "plane") {
         mesh.rotation.set(
@@ -154,7 +169,7 @@ function createWebGLViewport(canvas) {
       }
       const s = Math.max(0.15, (object.size || 100) / 100);
       mesh.scale.set(object.scale.x * s, object.scale.y * s, object.scale.z * s);
-      if (mesh.userData.isCharacter) poseCharacter(mesh, object);
+      if (mesh.userData.isCharacter) poseCharacter(mesh, object, clock);
       if (mesh.material) {
         mesh.material.opacity = object.opacity ?? 1;
         mesh.material.color.setHex(hexColor(object.color?.hex || object.color));
@@ -189,8 +204,15 @@ function createWebGLViewport(canvas) {
   let last = performance.now();
   let fps = 0;
   function tick() {
+    clock += 1 / 60;
     resize();
     controls.update();
+    if (lastState) {
+      for (const object of lastState.objects || []) {
+        const mesh = meshes.get(object.id);
+        if (mesh?.userData.isCharacter) poseCharacter(mesh, object, clock);
+      }
+    }
     renderer.render(scene, camera);
     frames += 1;
     const now = performance.now();

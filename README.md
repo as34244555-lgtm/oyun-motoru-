@@ -11,6 +11,8 @@ Oyunu C++ ile yazmazsın. Motor C++ ile çalışır; sen nesneleri sahneye koyar
 - Kostüm / animasyon (3D poz) ve isteğe bağlı 2D boyama
 - Kodun yerini tutan geniş blok seti: olay, hareket, görünüm, ses, kontrol, algı, **işlemler** (+ − × ÷), değişken/liste, kalem, 3D/kamera
 - Oyunda **kamera açısı** (yaw / pitch / mesafe / FOV), hazır görünümler ve Q/E çevirme
+- Karakter animasyonları (idle / yürüme / zıplama / el sallama) ve daha dolu 3D dekorlar
+- **Web oyunu**, **APK / AAB** Android projesi ve GitHub Pages kalıcı site
 - Yazılım rasterizer + Three.js görünüm
 - Proje kaydet / yükle
 - Tek binary: `blokmotor` hem motor hem editör sunucusu
@@ -82,6 +84,10 @@ API özeti: `/api/state`, `/api/objects`, `/api/scripts`, `/api/play`, `/api/sto
 ```
 
 Blok paletinde 120’den fazla işlem var. Karakter eklemek için **Kütüphane**; sahnenin sağ üstündeki **Oyun kamerası** kaydırıcılarıyla bakış açısını hem düzenlemede hem oyunda değiştir.
+
+Kalıcı site: https://as34244555-lgtm.github.io/oyun-motoru-/
+
+**Web oyunu** tek HTML indirir. **APK / AAB** Android projesini zip’ler (`assembleRelease` → APK, `bundleRelease` → Play Store AAB). GitHub Actions da debug APK/AAB üretir.
 
 ## Sonraki adımlar
 

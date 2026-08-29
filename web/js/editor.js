@@ -4,6 +4,7 @@ import { createBlockEditor } from "./blocks.js";
 import { BACKDROPS, CHARACTERS, characterCostumes, characterKindOf } from "./library.js";
 import { isometricThumb } from "./characters3d.js";
 import { openPaintEditor } from "./paint.js";
+import { exportAndroidProject, exportWebGame, siteUrl } from "./export.js";
 
 const NOTES = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88, C5: 523.25 };
 let audioCtx = null;
@@ -345,7 +346,7 @@ function openLibrary() {
       const card = document.createElement("button");
       card.type = "button";
       card.className = "lib-card";
-      card.innerHTML = `<div class="thumb" style="background:linear-gradient(${bg.sky},${bg.ground})"></div><span>${bg.name}</span>`;
+      card.innerHTML = `<div class="thumb" style="background:radial-gradient(circle at 70% 18%, rgba(255,255,255,.35), transparent 30%), linear-gradient(180deg, ${bg.sky} 0%, ${bg.sky} 46%, ${bg.ground} 46%, ${bg.ground} 100%)"></div><span>${bg.name}</span>`;
       card.addEventListener("click", async () => {
         await api.setBackdrop(bg.id);
         modal.remove();
@@ -371,7 +372,51 @@ function openLibrary() {
   showChars();
 }
 
+function publishDialog() {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.innerHTML = `
+    <div class="modal-card">
+      <header>
+        <h3>Yayınla — site, APK ve AAB</h3>
+        <button type="button" class="btn ghost" data-close>Kapat</button>
+      </header>
+      <div style="padding:16px;display:grid;gap:10px;max-width:640px">
+        <p>Kalıcı site (GitHub Pages): <a href="${siteUrl()}" target="_blank" rel="noreferrer">${siteUrl()}</a></p>
+        <p>Oyunu telefona almak için <b>APK / AAB</b> ile Android projesini indir. Android Studio’da <code>assembleRelease</code> APK, <code>bundleRelease</code> Play Store AAB üretir.</p>
+        <div class="row">
+          <button type="button" class="btn primary" id="dl-web">Web oyunu (.html)</button>
+          <button type="button" class="btn" id="dl-apk">Android proje (.zip)</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector("[data-close]").addEventListener("click", () => modal.remove());
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
+  modal.querySelector("#dl-web").addEventListener("click", async () => {
+    const project = await api.project();
+    project.scripts = blocks.serialize().scripts;
+    await exportWebGame(project);
+  });
+  modal.querySelector("#dl-apk").addEventListener("click", async () => {
+    const project = await api.project();
+    project.scripts = blocks.serialize().scripts;
+    await exportAndroidProject(project);
+  });
+}
+
 document.getElementById("btn-library").addEventListener("click", openLibrary);
+document.getElementById("btn-export-web")?.addEventListener("click", async () => {
+  const project = await api.project();
+  project.scripts = blocks.serialize().scripts;
+  await exportWebGame(project);
+});
+document.getElementById("btn-export-apk")?.addEventListener("click", async () => {
+  const project = await api.project();
+  project.scripts = blocks.serialize().scripts;
+  await exportAndroidProject(project);
+});
+document.getElementById("btn-publish")?.addEventListener("click", publishDialog);
 document.getElementById("btn-paint").addEventListener("click", () => {
   const object = selected();
   if (!object) return;
@@ -447,7 +492,7 @@ setInterval(async () => {
 
 if (cpuFrame && !viewport.software) {
   setInterval(() => {
-    cpuFrame.src = `/api/frame.bmp?t=${Date.now()}`;
+    cpuFrame.src = `api/frame.bmp?t=${Date.now()}`;
   }, 700);
 }
 
@@ -507,6 +552,12 @@ function bindCameraDock() {
 
 async function boot() {
   bindCameraDock();
+  if (api.ready) await api.ready();
+  if (api.mode?.() === "js") {
+    const preview = document.querySelector(".engine-preview");
+    if (preview) preview.style.display = "none";
+    statusMode.textContent = "Web motoru";
+  }
   const scripts = await api.scripts();
   blocks.load(scripts);
   await refresh();

@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BlokMotor — 3D oyun editörü</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;550;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="css/app.css" />
 </head>
 <body>
   <div class="app">
@@ -30,6 +30,9 @@
         <button class="btn" id="btn-sphere" type="button">+ Küre</button>
         <button class="btn" id="btn-pyramid" type="button">+ Piramit</button>
         <button class="btn" id="btn-plane" type="button">+ Zemin</button>
+        <button class="btn" id="btn-export-web" type="button">Web oyunu</button>
+        <button class="btn" id="btn-export-apk" type="button">APK / AAB</button>
+        <button class="btn ghost" id="btn-publish" type="button">Kalıcı site</button>
         <button class="btn ghost" id="btn-save" type="button">Projeyi kaydet</button>
         <button class="btn ghost" id="btn-load" type="button">Yükle</button>
         <input id="file-load" type="file" accept="application/json" hidden />
@@ -104,6 +107,6 @@
       }
     }
   </script>
-  <script type="module" src="/js/editor.js"></script>
+  <script type="module" src="js/editor.js"></script>
 </body>
 </html>

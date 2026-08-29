@@ -1,0 +1,341 @@
+import { CHARACTERS, characterCostumes } from "./library.js";
+
+function hexToRgb(hex) {
+  const h = (hex || "#cccccc").replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+  return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, hex: `#${h.padStart(6, "0")}` };
+}
+
+function catalogColor(id) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i += 1) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  const hue = ((h >>> 0) % 360) / 360;
+  const s = 0.62, l = 0.55;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const f = (t) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 0.5) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  const r = f(hue + 1 / 3), g = f(hue), b = f(hue - 1 / 3);
+  const to = (x) => Math.round(x * 255).toString(16).padStart(2, "0");
+  return { r, g, b, hex: `#${to(r)}${to(g)}${to(b)}` };
+}
+
+function vec(x = 0, y = 0, z = 0) {
+  return { x, y, z };
+}
+
+function refreshOrbit(cam) {
+  cam.pitch = Math.max(-80, Math.min(80, cam.pitch));
+  cam.distance = Math.max(1.2, cam.distance);
+  const pr = (cam.pitch * Math.PI) / 180;
+  const yr = (cam.yaw * Math.PI) / 180;
+  cam.position = {
+    x: cam.target.x + cam.distance * Math.cos(pr) * Math.sin(yr),
+    y: cam.target.y + cam.distance * Math.sin(pr),
+    z: cam.target.z + cam.distance * Math.cos(pr) * Math.cos(yr),
+  };
+}
+
+function makeDefault() {
+  const camera = { position: vec(6.2, 4.2, 6.6), target: vec(0.2, 0.5, 0), fov: 50, yaw: 45, pitch: 28, distance: 9.2, follow: "" };
+  refreshOrbit(camera);
+  return {
+    objects: [
+      { id: "ground", name: "Zemin", mesh: "plane", position: vec(0, 0, 0), rotation: vec(), scale: vec(14, 1, 14), color: hexToRgb("#476b57"), velocity: vec(), visible: true, dynamic: false, grounded: true, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
+      { id: "cube", name: "Kup", mesh: "cube", position: vec(0, 0.5, 0), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#ed5438"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
+      { id: "sphere", name: "Kure", mesh: "sphere", position: vec(2.4, 0.5, 0.2), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#389ef2"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
+      { id: "pyramid", name: "Piramit", mesh: "pyramid", position: vec(-2.3, 0.5, -0.4), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#fac738"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "", costumes: [], costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false },
+      { id: "cat", name: "Kedi", mesh: "character", position: vec(0.8, 0.55, 1.6), rotation: vec(), scale: vec(1, 1, 1), color: hexToRgb("#f59e48"), velocity: vec(), visible: true, dynamic: true, grounded: false, catalogId: "kedi", costumes: characterCostumes("kedi"), costumeIndex: 0, opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 8, animClip: "idle", isClone: false },
+    ],
+    camera,
+    gravity: -20,
+    backdrop: "cayir",
+    timer: 0,
+    volume: 80,
+    lastSound: "",
+    lastBroadcast: "",
+    playing: false,
+    runtime: { vars: {}, lists: {}, timer: 0 },
+  };
+}
+
+function defaultScripts() {
+  return {
+    scripts: [
+      { target: "cube", hat: { op: "every_frame", args: {} }, stack: [{ op: "rotate", args: { axis: "y", degrees: "80" } }] },
+      { target: "cube", hat: { op: "every_frame", args: {} }, stack: [{ op: "if", cond: { op: "key_down", args: { key: "Space" } }, then: [{ op: "jump", args: { force: "8" } }] }] },
+      { target: "sphere", hat: { op: "every_frame", args: {} }, stack: [
+        { op: "if", cond: { op: "key_down", args: { key: "ArrowLeft" } }, then: [{ op: "change_position", args: { x: "-0.08", y: "0", z: "0" } }] },
+        { op: "if", cond: { op: "key_down", args: { key: "ArrowRight" } }, then: [{ op: "change_position", args: { x: "0.08", y: "0", z: "0" } }] },
+        { op: "if", cond: { op: "key_down", args: { key: "ArrowUp" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "-0.08" } }] },
+        { op: "if", cond: { op: "key_down", args: { key: "ArrowDown" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "0.08" } }] },
+      ] },
+      { target: "cat", hat: { op: "when_start", args: {} }, stack: [
+        { op: "start_anim", args: { fps: "8" } },
+        { op: "say", args: { text: "Merhaba! Ben 3D Kedi.", seconds: "3" } },
+        { op: "camera_follow", args: { name: "cat" } },
+      ] },
+      { target: "cat", hat: { op: "every_frame", args: {} }, stack: [
+        { op: "if", cond: { op: "key_down", args: { key: "KeyA" } }, then: [{ op: "change_position", args: { x: "-0.07", y: "0", z: "0" } }] },
+        { op: "if", cond: { op: "key_down", args: { key: "KeyD" } }, then: [{ op: "change_position", args: { x: "0.07", y: "0", z: "0" } }] },
+        { op: "if", cond: { op: "key_down", args: { key: "KeyW" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "-0.07" } }] },
+        { op: "if", cond: { op: "key_down", args: { key: "KeyS" } }, then: [{ op: "change_position", args: { x: "0", y: "0", z: "0.07" } }] },
+      ] },
+    ],
+  };
+}
+
+function arg(block, key, fallback = "") {
+  const v = block.args?.[key];
+  return v === undefined || v === null ? fallback : String(v);
+}
+function argf(block, key, fallback = 0) {
+  const n = Number(arg(block, key, ""));
+  return Number.isFinite(n) ? n : fallback;
+}
+
+export function createJsEngine() {
+  let scene = makeDefault();
+  let snapshot = structuredClone(scene);
+  let scripts = defaultScripts().scripts;
+  const vars = {};
+  const lists = {};
+  let keys = new Set();
+  let serial = 10;
+  let startDone = new WeakMap();
+
+  function find(id) {
+    return scene.objects.find((o) => o.id === id || o.name === id);
+  }
+
+  function applyPreset(cam, p) {
+    if (p === "on") { cam.yaw = 0; cam.pitch = 8; cam.distance = 8; }
+    else if (p === "yan") { cam.yaw = 90; cam.pitch = 10; cam.distance = 8; }
+    else if (p === "ust") { cam.yaw = 0; cam.pitch = 80; cam.distance = 12; }
+    else if (p === "fps") { cam.yaw = 0; cam.pitch = 5; cam.distance = 2.2; }
+    else { cam.yaw = 45; cam.pitch = 28; cam.distance = 9.2; }
+    refreshOrbit(cam);
+  }
+
+  function evalCond(self, block) {
+    const op = (block.op || "").toLowerCase();
+    if (op === "key_down" || op === "key_pressed") return keys.has(arg(block, "key", "Space"));
+    if (op === "grounded") return !!self?.grounded;
+    if (op === "visible") return !!self?.visible;
+    if (op === "var_gt") return (vars[arg(block, "name", "skor")] || 0) > argf(block, "value");
+    if (op === "timer_gt") return scene.timer > argf(block, "seconds", argf(block, "value", 1));
+    if (op === "compare") {
+      const a = argf(block, "a"), b = argf(block, "b"), c = arg(block, "cmp", ">");
+      if (c === "<") return a < b;
+      if (c === "=") return Math.abs(a - b) < 1e-5;
+      return a > b;
+    }
+    if (op === "random_chance") return Math.random() * 100 < argf(block, "value", 50);
+    if (op === "touching" && self) {
+      const name = arg(block, "name");
+      return scene.objects.some((o) => o.id !== self.id && (!name || o.name === name || o.id === name) &&
+        Math.abs(o.position.x - self.position.x) < 0.8 && Math.abs(o.position.z - self.position.z) < 0.8);
+    }
+    return false;
+  }
+
+  function runBlock(self, block, dt) {
+    const op = (block.op || "").toLowerCase();
+    if (!self && !["set_var", "change_var", "set_backdrop", "set_camera_orbit", "set_camera_yaw", "set_camera_pitch", "set_camera_distance", "camera_follow", "camera_unfollow", "camera_preset", "change_camera_yaw", "change_camera_pitch", "calc", "play_anim"].includes(op)) return;
+    const move = (dx, dy, dz) => { self.position.x += dx; self.position.y += dy; self.position.z += dz; };
+    if (op === "rotate") self.rotation[arg(block, "axis", "y")] += argf(block, "degrees", 90) * dt;
+    else if (op === "jump" && (self.grounded || arg(block, "always") === "true")) { self.velocity.y = argf(block, "force", 8); self.grounded = false; }
+    else if (op === "change_position") move(argf(block, "x"), argf(block, "y"), argf(block, "z"));
+    else if (op === "set_position") { self.position = { x: argf(block, "x"), y: argf(block, "y"), z: argf(block, "z") }; }
+    else if (op === "set_x") self.position.x = argf(block, "value");
+    else if (op === "set_y") self.position.y = argf(block, "value");
+    else if (op === "set_z") self.position.z = argf(block, "value");
+    else if (op === "change_x") self.position.x += argf(block, "value", 0.1);
+    else if (op === "change_y") self.position.y += argf(block, "value", 0.1);
+    else if (op === "change_z") self.position.z += argf(block, "value", 0.1);
+    else if (op === "say") { self.sayText = arg(block, "text", "Merhaba!"); self.sayTime = argf(block, "seconds", 2); }
+    else if (op === "start_anim") { self.animating = true; self.animFps = argf(block, "fps", 8); self.animClip = "walk"; }
+    else if (op === "stop_anim") { self.animating = false; self.animClip = "idle"; }
+    else if (op === "play_anim") { self.animClip = arg(block, "name", "walk"); self.animating = self.animClip !== "idle"; }
+    else if (op === "next_costume") self.costumeIndex = ((self.costumeIndex || 0) + 1) % Math.max(1, (self.costumes || []).length || 3);
+    else if (op === "show") self.visible = true;
+    else if (op === "hide") self.visible = false;
+    else if (op === "set_color") self.color = hexToRgb(arg(block, "color", "#ffffff"));
+    else if (op === "set_scale") { const s = argf(block, "value", 1); self.scale = { x: s, y: s, z: s }; }
+    else if (op === "set_size") self.size = argf(block, "value", 100);
+    else if (op === "move_forward" || op === "move_steps") {
+      const yaw = (self.rotation.y * Math.PI) / 180;
+      const a = argf(block, "amount", argf(block, "steps", 3)) * dt;
+      move(Math.sin(yaw) * a, 0, Math.cos(yaw) * a);
+    }
+    else if (op === "turn_left") self.rotation.y += argf(block, "degrees", 15);
+    else if (op === "turn_right") self.rotation.y -= argf(block, "degrees", 15);
+    else if (op === "set_heading") self.rotation.y = argf(block, "degrees", 0);
+    else if (op === "set_var") vars[arg(block, "name", "skor")] = argf(block, "value");
+    else if (op === "change_var") vars[arg(block, "name", "skor")] = (vars[arg(block, "name", "skor")] || 0) + argf(block, "value", 1);
+    else if (op === "calc") {
+      const a = argf(block, "a"), b = argf(block, "b"), fn = arg(block, "fn", "+");
+      let v = a + b;
+      if (fn === "-") v = a - b;
+      else if (fn === "*") v = a * b;
+      else if (fn === "/") v = b === 0 ? 0 : a / b;
+      vars[arg(block, "name", "skor")] = v;
+    }
+    else if (op === "set_backdrop") scene.backdrop = arg(block, "name", "cayir");
+    else if (op === "camera_follow") scene.camera.follow = arg(block, "name", self?.id || "");
+    else if (op === "camera_unfollow") scene.camera.follow = "";
+    else if (op === "set_camera_yaw") { scene.camera.yaw = argf(block, "value", 45); refreshOrbit(scene.camera); }
+    else if (op === "set_camera_pitch") { scene.camera.pitch = argf(block, "value", 28); refreshOrbit(scene.camera); }
+    else if (op === "set_camera_distance") { scene.camera.distance = argf(block, "value", 9); refreshOrbit(scene.camera); }
+    else if (op === "change_camera_yaw") { scene.camera.yaw += argf(block, "value", 10) * dt; refreshOrbit(scene.camera); }
+    else if (op === "change_camera_pitch") { scene.camera.pitch += argf(block, "value", 10) * dt; refreshOrbit(scene.camera); }
+    else if (op === "camera_preset") applyPreset(scene.camera, arg(block, "name", "izometrik"));
+    else if (op === "set_camera_orbit") {
+      scene.camera.yaw = argf(block, "yaw", scene.camera.yaw);
+      scene.camera.pitch = argf(block, "pitch", scene.camera.pitch);
+      scene.camera.distance = argf(block, "distance", scene.camera.distance);
+      refreshOrbit(scene.camera);
+    }
+    else if (op === "if" || op === "if_else") {
+      const cond = block.cond || { op: arg(block, "condOp", "key_down"), args: block.args || {} };
+      const ok = evalCond(self, cond);
+      for (const child of (ok ? block.then : block.else) || []) runBlock(self, child, dt);
+    }
+    else if (op === "repeat") {
+      const n = Math.min(16, Math.max(0, argf(block, "times", 1)));
+      for (let i = 0; i < n; i += 1) for (const child of block.stack || block.then || []) runBlock(self, child, dt);
+    }
+    else if (op === "forever") {
+      for (const child of block.stack || block.then || []) runBlock(self, child, dt);
+    }
+  }
+
+  function physics(dt) {
+    for (const o of scene.objects) {
+      if (!o.dynamic || o.mesh === "plane") continue;
+      o.velocity.y += scene.gravity * dt;
+      o.position.y += o.velocity.y * dt;
+      const floor = 0.5 * (o.scale?.y || 1) * Math.max(0.15, (o.size || 100) / 100);
+      if (o.position.y <= floor) {
+        o.position.y = floor;
+        o.velocity.y = 0;
+        o.grounded = true;
+      } else o.grounded = false;
+      if (o.sayTime > 0) {
+        o.sayTime -= dt;
+        if (o.sayTime <= 0) o.sayText = "";
+      }
+      if (o.animating) {
+        o.costumeIndex = ((o.costumeIndex || 0) + 1) % 3;
+      }
+    }
+  }
+
+  function tick(dt) {
+    if (!scene.playing) return;
+    scene.timer += dt;
+    scene.runtime.timer = scene.timer;
+    for (const script of scripts) {
+      const self = find(script.target);
+      if (!self) continue;
+      const hat = (typeof script.hat === "string" ? script.hat : script.hat?.op || "every_frame").toLowerCase();
+      let run = false;
+      if (hat === "every_frame") run = true;
+      else if (hat === "when_start") {
+        if (!script._done) { run = true; script._done = true; }
+      } else if (hat === "when_key") run = keys.has(arg(script.hat, "key", "Space"));
+      if (!run) continue;
+      for (const block of script.stack || []) runBlock(self, block, dt);
+    }
+    physics(dt);
+    if (scene.camera.follow) {
+      const tracked = find(scene.camera.follow);
+      if (tracked) scene.camera.target = { ...tracked.position };
+    }
+    refreshOrbit(scene.camera);
+  }
+
+  let last = performance.now();
+  setInterval(() => {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    tick(dt);
+  }, 16);
+
+  return {
+    mode: "js",
+    state() {
+      return { ...scene, runtime: { vars: { ...vars }, lists, timer: scene.timer } };
+    },
+    scripts() { return { scripts }; },
+    async setScripts(payload) { scripts = structuredClone(payload.scripts || []); scripts.forEach((s) => { s._done = false; }); },
+    async addObject(spec) {
+      const mesh = typeof spec === "string" ? spec : spec.mesh || "cube";
+      const catalogId = typeof spec === "object" ? spec.catalogId || "" : "";
+      const id = `${mesh}_${serial++}`;
+      const ch = CHARACTERS.find((c) => c.id === catalogId);
+      const obj = {
+        id, name: spec.name || ch?.name || mesh, mesh: catalogId ? "character" : mesh,
+        position: vec((scene.objects.length % 5) * 0.4, 0.55, 0), rotation: vec(), scale: vec(1, 1, 1),
+        color: catalogId ? catalogColor(catalogId) : hexToRgb("#dd8844"),
+        velocity: vec(), visible: true, dynamic: mesh !== "plane", grounded: false,
+        catalogId, costumes: catalogId ? characterCostumes(catalogId) : [], costumeIndex: 0,
+        opacity: 1, size: 100, layer: 0, sayText: "", sayTime: 0, animating: false, animFps: 6, animClip: "idle", isClone: false,
+      };
+      scene.objects.push(obj);
+      if (!scene.playing) snapshot = structuredClone(scene);
+      return { id, name: obj.name };
+    },
+    async updateObject(id, patch) {
+      const o = find(id);
+      if (!o) throw new Error("nesne yok");
+      if (patch.name) o.name = patch.name;
+      if (patch.color) o.color = typeof patch.color === "string" ? hexToRgb(patch.color) : patch.color;
+      if (patch.position) Object.assign(o.position, patch.position);
+      if (patch.rotation) Object.assign(o.rotation, patch.rotation);
+      if (patch.scale) Object.assign(o.scale, patch.scale);
+      if (patch.animClip) o.animClip = patch.animClip;
+    },
+    async removeObject(id) { scene.objects = scene.objects.filter((o) => o.id !== id); },
+    async play(payload) {
+      if (payload?.scripts) scripts = structuredClone(payload.scripts);
+      scripts.forEach((s) => { s._done = false; });
+      snapshot = structuredClone(scene);
+      scene.playing = true;
+      scene.timer = 0;
+    },
+    async stop() {
+      scene = structuredClone(snapshot);
+      scene.playing = false;
+      keys = new Set();
+    },
+    async input(list) { keys = new Set(list || []); },
+    async reset() { scene = makeDefault(); snapshot = structuredClone(scene); scripts = defaultScripts().scripts; },
+    async project() { return { ...scene, scripts }; },
+    async loadProject(p) {
+      scene = { ...makeDefault(), ...p, objects: p.objects || makeDefault().objects, camera: p.camera || makeDefault().camera };
+      scripts = p.scripts || defaultScripts().scripts;
+      scene.playing = false;
+    },
+    async setBackdrop(id) { scene.backdrop = id; },
+    async updateCamera(patch) {
+      if (patch.preset) applyPreset(scene.camera, patch.preset);
+      if (patch.yaw !== undefined) scene.camera.yaw = Number(patch.yaw);
+      if (patch.pitch !== undefined) scene.camera.pitch = Number(patch.pitch);
+      if (patch.distance !== undefined) scene.camera.distance = Number(patch.distance);
+      if (patch.fov !== undefined) scene.camera.fov = Number(patch.fov);
+      if (patch.follow !== undefined) scene.camera.follow = patch.follow;
+      refreshOrbit(scene.camera);
+      return this.state();
+    },
+    async cloneObject() { return { id: "" }; },
+  };
+}
+
