@@ -1,7 +1,7 @@
 import { api } from "./api.js";
 import { createViewport } from "./viewport.js";
 import { createBlockEditor } from "./blocks.js";
-import { BACKDROPS, CHARACTERS, characterCostumes, characterKindOf, costumeImage } from "./library.js";
+import { BACKDROPS, CHARACTERS, characterCostumes, characterKindOf } from "./library.js";
 import { isometricThumb } from "./characters3d.js";
 import { openPaintEditor } from "./paint.js";
 
@@ -44,6 +44,7 @@ const keys = new Set();
 let state = { objects: [], playing: false };
 let selectedId = "";
 let savingScripts = false;
+let cameraBusy = false;
 
 const blocks = createBlockEditor({
   paletteEl: document.getElementById("palette"),
@@ -74,12 +75,19 @@ function renderHierarchy() {
     const name = document.createElement("span");
     name.textContent = object.name;
     if (object.catalogId) {
-      const img = document.createElement("img");
-      img.src = (object.costumes || [])[object.costumeIndex || 0]?.image || costumeImage(object.catalogId, object.costumeIndex || 0);
-      img.alt = "";
-      img.style.width = "18px";
-      img.style.height = "18px";
-      swatch.replaceWith(img);
+      const thumb = document.createElement("span");
+      thumb.className = "swatch";
+      thumb.style.background = "transparent";
+      thumb.style.width = "22px";
+      thumb.style.height = "18px";
+      const ch = CHARACTERS.find((c) => c.id === object.catalogId);
+      thumb.innerHTML = isometricThumb(ch?.hue ?? 28, characterKindOf(object.catalogId));
+      const svg = thumb.querySelector("svg");
+      if (svg) {
+        svg.style.width = "22px";
+        svg.style.height = "18px";
+      }
+      swatch.replaceWith(thumb);
     }
     const kind = document.createElement("span");
     kind.className = "kind";
@@ -91,7 +99,7 @@ function renderHierarchy() {
   statusCount.textContent = String(state.objects?.length || 0);
 }
 
-function numField(label, value, onCommit) {
+function numField(label, value, onCommit, always = false) {
   const wrap = document.createElement("label");
   wrap.className = "field";
   wrap.textContent = label;
@@ -99,7 +107,7 @@ function numField(label, value, onCommit) {
   input.type = "number";
   input.step = "0.1";
   input.value = Number(value ?? 0).toFixed(2);
-  input.disabled = !!state.playing;
+  input.disabled = !always && !!state.playing;
   input.addEventListener("change", () => onCommit(Number(input.value)));
   wrap.appendChild(input);
   return wrap;
@@ -118,7 +126,7 @@ function renderCameraPanel(parent) {
     row.appendChild(numField(label, cam[key], async (v) => {
       await api.updateCamera({ [key]: v });
       await refresh();
-    }));
+    }, true));
   }
   box.appendChild(row);
   const presets = document.createElement("div");
@@ -261,6 +269,7 @@ async function refresh() {
   renderHierarchy();
   renderInspector();
   renderSpeech(state.objects);
+  syncCameraDock(state.camera);
   setPlaying(!!state.playing);
 }
 
@@ -415,6 +424,10 @@ window.addEventListener("keyup", (e) => {
 setInterval(async () => {
   if (state.playing) {
     try {
+      if (keys.has("KeyQ") || keys.has("KeyE")) {
+        const yaw = Number(state.camera?.yaw || 45) + (keys.has("KeyE") ? 4 : -4);
+        await api.updateCamera({ yaw });
+      }
       await api.input([...keys]);
       state = await api.state();
       viewport.sync(state);
@@ -424,7 +437,7 @@ setInterval(async () => {
         playTone.last = state.lastSound;
         playTone(state.lastSound, state.volume);
       }
-      if (selected()) renderInspector();
+      syncCameraDock(state.camera);
     } catch (_) {
       /* keep editor alive */
     }
@@ -438,10 +451,66 @@ if (cpuFrame && !viewport.software) {
   }, 700);
 }
 
+function camInput(id) {
+  return document.getElementById(id);
+}
+
+function syncCameraDock(cam) {
+  if (!cam || cameraBusy) return;
+  const pairs = [
+    ["cam-yaw", "cam-yaw-val", cam.yaw, 0],
+    ["cam-pitch", "cam-pitch-val", cam.pitch, 0],
+    ["cam-dist", "cam-dist-val", cam.distance, 1],
+    ["cam-fov", "cam-fov-val", cam.fov, 0],
+  ];
+  for (const [id, vid, value, digits] of pairs) {
+    const input = camInput(id);
+    const label = document.getElementById(vid);
+    if (!input || document.activeElement === input) continue;
+    input.value = Number(value ?? 0);
+    if (label) label.textContent = Number(value ?? 0).toFixed(digits);
+  }
+}
+
+function bindCameraDock() {
+  const dock = document.getElementById("camera-dock");
+  if (!dock) return;
+  const send = async (patch) => {
+    cameraBusy = true;
+    try {
+      await api.updateCamera(patch);
+      const next = await api.state();
+      state.camera = next.camera;
+      viewport.sync({ ...state, ...next });
+      syncCameraDock(next.camera);
+    } finally {
+      cameraBusy = false;
+    }
+  };
+  for (const [id, key] of [["cam-yaw", "yaw"], ["cam-pitch", "pitch"], ["cam-dist", "distance"], ["cam-fov", "fov"]]) {
+    const input = camInput(id);
+    if (!input) continue;
+    input.addEventListener("pointerdown", () => {
+      cameraBusy = true;
+    });
+    input.addEventListener("input", () => {
+      const label = document.getElementById(`${id}-val`);
+      if (label) label.textContent = Number(input.value).toFixed(key === "distance" ? 1 : 0);
+    });
+    input.addEventListener("change", () => send({ [key]: Number(input.value) }));
+    input.addEventListener("pointerup", () => send({ [key]: Number(input.value) }));
+  }
+  dock.querySelectorAll("[data-cam]").forEach((btn) => {
+    btn.addEventListener("click", () => send({ preset: btn.getAttribute("data-cam") }));
+  });
+}
+
 async function boot() {
+  bindCameraDock();
   const scripts = await api.scripts();
   blocks.load(scripts);
   await refresh();
+  syncCameraDock(state.camera);
 }
 
 boot().catch((err) => {

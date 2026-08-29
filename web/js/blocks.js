@@ -49,8 +49,8 @@ export const DEFS = [
   { op: "play_note", kind: "stack", cat: "sound", cls: "sound", title: "nota çal", fields: [{ key: "note", type: "select", options: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"] }] },
   { op: "set_volume", kind: "stack", cat: "sound", cls: "sound", title: "ses düzeyi", fields: [{ key: "value", type: "number", value: "80" }] },
 
-  { op: "if", kind: "c", cat: "control", cls: "control", title: "eğer", fields: [{ key: "condOp", type: "select", options: ["key_down", "grounded", "touching", "visible"] }, { key: "key", type: "select", options: KEYS }, { key: "name", type: "text", value: "Kure" }] },
-  { op: "if_else", kind: "c2", cat: "control", cls: "control", title: "eğer / değilse", fields: [{ key: "condOp", type: "select", options: ["key_down", "grounded"] }, { key: "key", type: "select", options: KEYS }] },
+  { op: "if", kind: "c", cat: "control", cls: "control", title: "eğer", fields: [{ key: "condOp", type: "select", options: ["key_down", "grounded", "touching", "visible", "var_gt", "timer_gt", "compare", "random_chance", "edge"] }, { key: "key", type: "select", options: KEYS }, { key: "name", type: "text", value: "skor" }, { key: "value", type: "number", value: "1" }, { key: "a", type: "number", value: "0" }, { key: "b", type: "number", value: "10" }, { key: "cmp", type: "select", options: [">", "<", "=", ">=", "<="] }] },
+  { op: "if_else", kind: "c2", cat: "control", cls: "control", title: "eğer / değilse", fields: [{ key: "condOp", type: "select", options: ["key_down", "grounded", "touching", "var_gt", "timer_gt", "compare"] }, { key: "key", type: "select", options: KEYS }, { key: "name", type: "text", value: "skor" }, { key: "value", type: "number", value: "1" }, { key: "a", type: "number", value: "0" }, { key: "b", type: "number", value: "10" }, { key: "cmp", type: "select", options: [">", "<", "="] }] },
   { op: "repeat", kind: "c", cat: "control", cls: "control", title: "tekrarla", fields: [{ key: "times", type: "number", value: "4" }] },
   { op: "forever", kind: "c", cat: "control", cls: "control", title: "sürekli" },
   { op: "wait", kind: "stack", cat: "control", cls: "control", title: "bekle saniye", fields: [{ key: "seconds", type: "number", value: "1" }] },
@@ -94,6 +94,66 @@ export const DEFS = [
   { op: "stop_this", kind: "stack", cat: "control", cls: "control", title: "bu scripti durdur" },
 
   { op: "touching_edge", kind: "stack", cat: "sensing", cls: "sensing", title: "kenara değince sek" },
+
+  { op: "when_timer", kind: "hat", cat: "events", cls: "hat", title: "süre dolunca", fields: [{ key: "seconds", type: "number", value: "3" }] },
+  { op: "when_var", kind: "hat", cat: "events", cls: "hat", title: "değişken büyükse", fields: [{ key: "name", type: "text", value: "skor" }, { key: "value", type: "number", value: "10" }] },
+  { op: "when_touching", kind: "hat", cat: "events", cls: "hat", title: "değinece", fields: [{ key: "name", type: "text", value: "Kure" }] },
+
+  { op: "set_rotation", kind: "stack", cat: "motion", cls: "motion", title: "döndürmeyi ayarla", fields: [{ key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "0" }, { key: "z", type: "number", value: "0" }] },
+  { op: "set_rot_x", kind: "stack", cat: "motion", cls: "motion", title: "rx =", fields: [{ key: "value", type: "number", value: "0" }] },
+  { op: "set_rot_y", kind: "stack", cat: "motion", cls: "motion", title: "ry =", fields: [{ key: "value", type: "number", value: "0" }] },
+  { op: "set_rot_z", kind: "stack", cat: "motion", cls: "motion", title: "rz =", fields: [{ key: "value", type: "number", value: "0" }] },
+  { op: "change_rot_x", kind: "stack", cat: "motion", cls: "motion", title: "rx değiştir", fields: [{ key: "value", type: "number", value: "10" }] },
+  { op: "change_rot_y", kind: "stack", cat: "motion", cls: "motion", title: "ry değiştir", fields: [{ key: "value", type: "number", value: "10" }] },
+  { op: "change_rot_z", kind: "stack", cat: "motion", cls: "motion", title: "rz değiştir", fields: [{ key: "value", type: "number", value: "10" }] },
+  { op: "stop_moving", kind: "stack", cat: "motion", cls: "motion", title: "hareketi durdur" },
+  { op: "set_dynamic", kind: "stack", cat: "motion", cls: "motion", title: "fizik", fields: [{ key: "value", type: "select", options: ["true", "false"] }] },
+
+  { op: "clear_say", kind: "stack", cat: "looks", cls: "looks", title: "konuşmayı sil" },
+  { op: "change_opacity", kind: "stack", cat: "looks", cls: "looks", title: "saydamlığı değiştir", fields: [{ key: "value", type: "number", value: "-10" }] },
+  { op: "go_front", kind: "stack", cat: "looks", cls: "looks", title: "öne gel" },
+  { op: "go_back", kind: "stack", cat: "looks", cls: "looks", title: "arkaya git" },
+  { op: "change_layer", kind: "stack", cat: "looks", cls: "looks", title: "katman değiştir", fields: [{ key: "value", type: "number", value: "1" }] },
+  { op: "set_sky", kind: "stack", cat: "looks", cls: "looks", title: "gökyüzü rengi", fields: [{ key: "color", type: "color", value: "#73b8f2" }] },
+
+  { op: "play_drum", kind: "stack", cat: "sound", cls: "sound", title: "davul çal", fields: [{ key: "name", type: "select", options: ["kick", "snare", "hat"] }] },
+
+  { op: "if_compare", kind: "c", cat: "control", cls: "control", title: "eğer sayı", fields: [{ key: "a", type: "number", value: "0" }, { key: "cmp", type: "select", options: [">", "<", "=", ">=", "<="] }, { key: "b", type: "number", value: "10" }] },
+  { op: "if_var", kind: "c", cat: "control", cls: "control", title: "eğer değişken", fields: [{ key: "name", type: "text", value: "skor" }, { key: "cmp", type: "select", options: [">", "<", "="] }, { key: "value", type: "number", value: "10" }] },
+  { op: "if_random", kind: "c", cat: "control", cls: "control", title: "eğer rastgele %", fields: [{ key: "value", type: "number", value: "50" }] },
+  { op: "repeat_until_var", kind: "c", cat: "control", cls: "control", title: "değişkene kadar tekrarla", fields: [{ key: "name", type: "text", value: "skor" }, { key: "value", type: "number", value: "10" }] },
+  { op: "wait_until_var", kind: "stack", cat: "control", cls: "control", title: "değişkene kadar bekle", fields: [{ key: "name", type: "text", value: "skor" }, { key: "value", type: "number", value: "1" }] },
+  { op: "stop_all", kind: "stack", cat: "control", cls: "control", title: "her şeyi durdur" },
+
+  { op: "store_sensor", kind: "stack", cat: "sensing", cls: "sensing", title: "algıyı değişkene yaz", fields: [{ key: "sensor", type: "select", options: ["x", "y", "z", "heading", "timer", "size", "costume", "random", "grounded", "key", "distance", "volume"] }, { key: "name", type: "text", value: "deger" }, { key: "key", type: "select", options: KEYS }, { key: "a", type: "number", value: "1" }, { key: "b", type: "number", value: "10" }, { key: "target", type: "text", value: "Kure" }] },
+  { op: "store_x", kind: "stack", cat: "sensing", cls: "sensing", title: "x'i yaz", fields: [{ key: "name", type: "text", value: "x" }] },
+  { op: "store_y", kind: "stack", cat: "sensing", cls: "sensing", title: "y'yi yaz", fields: [{ key: "name", type: "text", value: "y" }] },
+  { op: "store_z", kind: "stack", cat: "sensing", cls: "sensing", title: "z'yi yaz", fields: [{ key: "name", type: "text", value: "z" }] },
+  { op: "store_timer", kind: "stack", cat: "sensing", cls: "sensing", title: "süreyi yaz", fields: [{ key: "name", type: "text", value: "sure" }] },
+  { op: "store_distance", kind: "stack", cat: "sensing", cls: "sensing", title: "mesafeyi yaz", fields: [{ key: "name", type: "text", value: "mesafe" }, { key: "target", type: "text", value: "Kure" }] },
+  { op: "store_random", kind: "stack", cat: "sensing", cls: "sensing", title: "rastgele yaz", fields: [{ key: "name", type: "text", value: "r" }, { key: "a", type: "number", value: "1" }, { key: "b", type: "number", value: "10" }] },
+
+  { op: "calc", kind: "stack", cat: "ops", cls: "ops", title: "hesapla", fields: [{ key: "name", type: "text", value: "skor" }, { key: "a", type: "number", value: "0" }, { key: "fn", type: "select", options: ["+", "-", "*", "/", "mod", "min", "max"] }, { key: "b", type: "number", value: "1" }] },
+  { op: "unary_set", kind: "stack", cat: "ops", cls: "ops", title: "tekli işlem", fields: [{ key: "name", type: "text", value: "skor" }, { key: "fn", type: "select", options: ["abs", "sqrt", "round", "floor", "sin", "cos"] }, { key: "a", type: "number", value: "4" }] },
+  { op: "pick_random", kind: "stack", cat: "ops", cls: "ops", title: "rastgele seç", fields: [{ key: "name", type: "text", value: "r" }, { key: "a", type: "number", value: "1" }, { key: "b", type: "number", value: "10" }] },
+  { op: "compare_set", kind: "stack", cat: "ops", cls: "ops", title: "karşılaştır yaz", fields: [{ key: "name", type: "text", value: "ok" }, { key: "a", type: "number", value: "1" }, { key: "cmp", type: "select", options: [">", "<", "="] }, { key: "b", type: "number", value: "0" }] },
+  { op: "copy_var", kind: "stack", cat: "ops", cls: "ops", title: "değişken kopyala", fields: [{ key: "from", type: "text", value: "skor" }, { key: "name", type: "text", value: "eski" }] },
+
+  { op: "list_delete", kind: "stack", cat: "vars", cls: "vars", title: "listeden sil", fields: [{ key: "name", type: "text", value: "liste" }, { key: "index", type: "number", value: "1" }] },
+  { op: "list_replace", kind: "stack", cat: "vars", cls: "vars", title: "listeyi değiştir", fields: [{ key: "name", type: "text", value: "liste" }, { key: "index", type: "number", value: "1" }, { key: "value", type: "number", value: "0" }] },
+  { op: "list_len_store", kind: "stack", cat: "vars", cls: "vars", title: "liste uzunluğunu yaz", fields: [{ key: "name", type: "text", value: "liste" }, { key: "into", type: "text", value: "n" }] },
+  { op: "show_var", kind: "stack", cat: "vars", cls: "vars", title: "değişkeni söyle", fields: [{ key: "name", type: "text", value: "skor" }] },
+
+  { op: "change_pen_size", kind: "stack", cat: "pen", cls: "pen", title: "kalem kalınlığı", fields: [{ key: "value", type: "number", value: "1" }] },
+  { op: "set_pen_color", kind: "stack", cat: "pen", cls: "pen", title: "kalem rengi", fields: [{ key: "color", type: "color", value: "#22aa66" }] },
+  { op: "stamp", kind: "stack", cat: "pen", cls: "pen", title: "damga (kopya)" },
+
+  { op: "change_camera_distance", kind: "stack", cat: "world", cls: "world", title: "kamerayı yaklaştır", fields: [{ key: "value", type: "number", value: "-1" }] },
+  { op: "set_camera_target", kind: "stack", cat: "world", cls: "world", title: "kamera hedefi", fields: [{ key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "0.5" }, { key: "z", type: "number", value: "0" }] },
+  { op: "camera_look_name", kind: "stack", cat: "world", cls: "world", title: "kamera şuna baksın", fields: [{ key: "name", type: "text", value: "Kedi" }] },
+  { op: "camera_shake", kind: "stack", cat: "world", cls: "world", title: "kamera sars", fields: [{ key: "value", type: "number", value: "8" }] },
+  { op: "spawn", kind: "stack", cat: "world", cls: "world", title: "nesne oluştur", fields: [{ key: "mesh", type: "select", options: ["cube", "sphere", "pyramid"] }, { key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "1" }, { key: "z", type: "number", value: "0" }] },
+  { op: "delete_this", kind: "stack", cat: "world", cls: "world", title: "beni sil" },
 ];
 
 const CATS = [
@@ -103,6 +163,7 @@ const CATS = [
   { id: "sound", label: "Ses" },
   { id: "control", label: "Kontrol" },
   { id: "sensing", label: "Algı" },
+  { id: "ops", label: "İşlemler" },
   { id: "vars", label: "Değişken" },
   { id: "pen", label: "Kalem" },
   { id: "world", label: "Dünya / 3D" },
@@ -122,9 +183,13 @@ function defaultBlock(op) {
   for (const field of def.fields || []) args[field.key] = field.value ?? field.options?.[0] ?? "";
   const block = { op, args };
   if (def.op === "if" || def.op === "if_else") {
-    block.cond = { op: args.condOp || "key_down", args: { key: args.key || "Space", name: args.name || "" } };
+    block.cond = { op: args.condOp || "key_down", args: { key: args.key || "Space", name: args.name || "", value: args.value || "1", a: args.a || "0", b: args.b || "10", cmp: args.cmp || ">" } };
     block.then = [];
     if (def.op === "if_else") block.else = [];
+  }
+  if (def.op === "if_compare" || def.op === "if_var" || def.op === "if_random" || def.op === "repeat_until_var") {
+    block.then = [];
+    block.stack = [];
   }
   if (def.op === "repeat" || def.op === "forever") block.stack = [];
   return block;

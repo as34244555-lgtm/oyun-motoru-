@@ -118,13 +118,43 @@ export const BACKDROPS = [
 ];
 
 export function characterKindOf(id) {
-  const quads = ["kedi", "kopek", "tavsan", "ayi", "tilki", "dinozor", "kurbaga", "karinca"];
-  const fly = ["kus", "kelebek", "ari", "melek", "peri", "ejderha", "yarasa", "penguen", "baykus"];
-  const round = ["top", "kabak", "yildiz", "balik"];
-  if (quads.includes(id)) return "quadruped";
-  if (fly.includes(id)) return "flyer";
-  if (round.includes(id)) return "round";
-  return "humanoid";
+  const kinds = {
+    kedi: "quadruped",
+    kopek: "quadruped",
+    tavsan: "quadruped",
+    ayi: "quadruped",
+    tilki: "quadruped",
+    dinozor: "quadruped",
+    kurbaga: "quadruped",
+    karinca: "quadruped",
+    unicorn: "quadruped",
+    kus: "flyer",
+    kelebek: "flyer",
+    ari: "flyer",
+    melek: "flyer",
+    peri: "flyer",
+    ejderha: "flyer",
+    yarasa: "flyer",
+    penguen: "flyer",
+    baykus: "flyer",
+    top: "round",
+    balik: "fish",
+    robot: "robot",
+    golem: "robot",
+    hayalet: "ghost",
+    ninja: "ninja",
+    sovalye: "knight",
+    samuray: "knight",
+    sihirbaz: "wizard",
+    cadi: "wizard",
+    uzayli: "alien",
+    prenses: "royal",
+    kral: "royal",
+    kardanadam: "snow",
+    kabak: "pumpkin",
+    yildiz: "star",
+  };
+  return kinds[id] || "humanoid";
 }
 
 export function costumeImage(id, frame = 0) {

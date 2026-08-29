@@ -208,7 +208,57 @@ int main() {
         CHECK(std::fabs(cam["yaw"].asFloat() - 90) < 0.01f);
         CHECK(cam["position"]["x"].asFloat() > 1.0f);
         CHECK(characterKindOf("kedi") == std::string("quadruped"));
-        CHECK(characterKindOf("ninja") == std::string("humanoid"));
+        CHECK(characterKindOf("ninja") == std::string("ninja"));
+        CHECK(characterKindOf("robot") == std::string("robot"));
+        CHECK(characterKindOf("hayalet") == std::string("ghost"));
+        CHECK(characterKindOf("balik") == std::string("fish"));
+    }
+
+    {
+        Scene scene;
+        GameObject cube;
+        cube.id = "cube";
+        cube.transform.position = {3, 2, 1};
+        scene.objects.push_back(cube);
+        Json root = Json::parse(R"({
+          "scripts":[{
+            "target":"cube",
+            "hat":"every_frame",
+            "stack":[
+              {"op":"store_x","args":{"name":"x"}},
+              {"op":"calc","args":{"name":"skor","a":"4","fn":"+","b":"6"}},
+              {"op":"set_camera_target","args":{"x":"1","y":"2","z":"3"}}
+            ]
+          }]
+        })");
+        BlockVM vm;
+        vm.load(root);
+        vm.tick(scene, 0.016f, {});
+        CHECK(std::fabs(vm.varsJson()["vars"]["x"].asNumber() - 3) < 1e-4);
+        CHECK(std::fabs(vm.varsJson()["vars"]["skor"].asNumber() - 10) < 1e-4);
+        CHECK(std::fabs(scene.camera.target.x - 1) < 1e-4);
+        CHECK(std::fabs(scene.camera.target.y - 2) < 1e-4);
+    }
+
+    {
+        Scene scene;
+        GameObject hero;
+        hero.id = "hero";
+        hero.name = "Kahraman";
+        hero.transform.position = {2, 0, 0};
+        scene.objects.push_back(hero);
+        Json root = Json::parse(R"({
+          "scripts":[{
+            "target":"hero",
+            "hat":"every_frame",
+            "stack":[{"op":"camera_look_name","args":{"name":"Kahraman"}},{"op":"if_var","args":{"name":"skor","cmp":">","value":"-1"},"then":[{"op":"set_var","args":{"name":"skor","value":"5"}}]}]
+          }]
+        })");
+        BlockVM vm;
+        vm.load(root);
+        vm.tick(scene, 0.016f, {});
+        CHECK(std::fabs(scene.camera.target.x - 2) < 1e-4);
+        CHECK(std::fabs(vm.varsJson()["vars"]["skor"].asNumber() - 5) < 1e-4);
     }
 
     std::cout << "blokmotor tests: " << gPassed << " gecti, " << gFailed << " kaldi\n";

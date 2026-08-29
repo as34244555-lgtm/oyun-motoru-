@@ -49,8 +49,22 @@
           <canvas id="view"></canvas>
           <div class="speech-log" id="speech-log"></div>
           <div class="viewport-overlay">
-            <span class="chip" id="hint">WASD: kedi · oklar: küre · Space: zıpla · Kütüphane: 45+ karakter</span>
+            <span class="chip" id="hint">WASD: kedi · oklar: küre · Space: zıpla · Q/E: kamera · sliders: açı</span>
           </div>
+          <aside class="camera-dock" id="camera-dock">
+            <div class="camera-dock-title">Oyun kamerası</div>
+            <label>Yaw <b id="cam-yaw-val">45</b><input id="cam-yaw" type="range" min="-180" max="180" step="1" value="45" /></label>
+            <label>Pitch <b id="cam-pitch-val">28</b><input id="cam-pitch" type="range" min="-80" max="80" step="1" value="28" /></label>
+            <label>Mesafe <b id="cam-dist-val">9.2</b><input id="cam-dist" type="range" min="2" max="24" step="0.1" value="9.2" /></label>
+            <label>FOV <b id="cam-fov-val">50</b><input id="cam-fov" type="range" min="25" max="90" step="1" value="50" /></label>
+            <div class="camera-presets">
+              <button type="button" class="btn" data-cam="izometrik">İzo</button>
+              <button type="button" class="btn" data-cam="on">Ön</button>
+              <button type="button" class="btn" data-cam="yan">Yan</button>
+              <button type="button" class="btn" data-cam="ust">Üst</button>
+              <button type="button" class="btn" data-cam="fps">FPS</button>
+            </div>
+          </aside>
           <div class="engine-preview">
             <img id="cpu-frame" alt="C++ yazılım renderer çıktısı" />
             <span>C++ yazılım renderer</span>

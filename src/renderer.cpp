@@ -31,6 +31,24 @@ void addQuad(std::vector<Triangle>& out, const Vec3& a, const Vec3& b, const Vec
     addTri(out, a, c, d, n);
 }
 
+void addBox(std::vector<Triangle>& t, const Vec3& c, const Vec3& s) {
+    const Vec3 h = s * 0.5f;
+    const Vec3 p000{c.x - h.x, c.y - h.y, c.z - h.z};
+    const Vec3 p100{c.x + h.x, c.y - h.y, c.z - h.z};
+    const Vec3 p110{c.x + h.x, c.y + h.y, c.z - h.z};
+    const Vec3 p010{c.x - h.x, c.y + h.y, c.z - h.z};
+    const Vec3 p001{c.x - h.x, c.y - h.y, c.z + h.z};
+    const Vec3 p101{c.x + h.x, c.y - h.y, c.z + h.z};
+    const Vec3 p111{c.x + h.x, c.y + h.y, c.z + h.z};
+    const Vec3 p011{c.x - h.x, c.y + h.y, c.z + h.z};
+    addQuad(t, p001, p101, p111, p011, {0, 0, 1});
+    addQuad(t, p100, p000, p010, p110, {0, 0, -1});
+    addQuad(t, p000, p001, p011, p010, {-1, 0, 0});
+    addQuad(t, p101, p100, p110, p111, {1, 0, 0});
+    addQuad(t, p011, p111, p110, p010, {0, 1, 0});
+    addQuad(t, p000, p100, p101, p001, {0, -1, 0});
+}
+
 std::vector<Triangle> makeCube() {
     std::vector<Triangle> t;
     addQuad(t, {-0.5f, -0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {0, 0, 1});
@@ -87,85 +105,135 @@ std::vector<Triangle> makeCapsule() {
 
 std::vector<Triangle> makeQuadruped() {
     std::vector<Triangle> t;
-    auto box = [&](Vec3 c, Vec3 s) {
-        const Vec3 h = s * 0.5f;
-        const Vec3 p000{c.x - h.x, c.y - h.y, c.z - h.z};
-        const Vec3 p100{c.x + h.x, c.y - h.y, c.z - h.z};
-        const Vec3 p110{c.x + h.x, c.y + h.y, c.z - h.z};
-        const Vec3 p010{c.x - h.x, c.y + h.y, c.z - h.z};
-        const Vec3 p001{c.x - h.x, c.y - h.y, c.z + h.z};
-        const Vec3 p101{c.x + h.x, c.y - h.y, c.z + h.z};
-        const Vec3 p111{c.x + h.x, c.y + h.y, c.z + h.z};
-        const Vec3 p011{c.x - h.x, c.y + h.y, c.z + h.z};
-        addQuad(t, p001, p101, p111, p011, {0, 0, 1});
-        addQuad(t, p100, p000, p010, p110, {0, 0, -1});
-        addQuad(t, p000, p001, p011, p010, {-1, 0, 0});
-        addQuad(t, p101, p100, p110, p111, {1, 0, 0});
-        addQuad(t, p011, p111, p110, p010, {0, 1, 0});
-        addQuad(t, p000, p100, p101, p001, {0, -1, 0});
-    };
-    box({0, 0.08f, 0}, {0.55f, 0.28f, 0.32f});
-    box({0.28f, 0.20f, 0}, {0.24f, 0.22f, 0.24f});
-    box({-0.18f, -0.18f, 0.12f}, {0.10f, 0.28f, 0.10f});
-    box({-0.18f, -0.18f, -0.12f}, {0.10f, 0.28f, 0.10f});
-    box({0.16f, -0.18f, 0.12f}, {0.10f, 0.28f, 0.10f});
-    box({0.16f, -0.18f, -0.12f}, {0.10f, 0.28f, 0.10f});
-    box({-0.30f, 0.12f, 0}, {0.16f, 0.08f, 0.08f});
+    addBox(t, {0, 0.08f, 0}, {0.58f, 0.30f, 0.34f});
+    addBox(t, {0.30f, 0.22f, 0}, {0.26f, 0.24f, 0.26f});
+    addBox(t, {0.42f, 0.14f, 0}, {0.12f, 0.10f, 0.12f});
+    addBox(t, {-0.18f, -0.18f, 0.12f}, {0.10f, 0.28f, 0.10f});
+    addBox(t, {-0.18f, -0.18f, -0.12f}, {0.10f, 0.28f, 0.10f});
+    addBox(t, {0.16f, -0.18f, 0.12f}, {0.10f, 0.28f, 0.10f});
+    addBox(t, {0.16f, -0.18f, -0.12f}, {0.10f, 0.28f, 0.10f});
+    addBox(t, {-0.32f, 0.14f, 0}, {0.20f, 0.08f, 0.08f});
+    addBox(t, {0.24f, 0.36f, 0.08f}, {0.06f, 0.14f, 0.05f});
+    addBox(t, {0.24f, 0.36f, -0.08f}, {0.06f, 0.14f, 0.05f});
     return t;
 }
 
 std::vector<Triangle> makeFlyer() {
     std::vector<Triangle> t;
-    auto box = [&](Vec3 c, Vec3 s) {
-        const Vec3 h = s * 0.5f;
-        const Vec3 p000{c.x - h.x, c.y - h.y, c.z - h.z};
-        const Vec3 p100{c.x + h.x, c.y - h.y, c.z - h.z};
-        const Vec3 p110{c.x + h.x, c.y + h.y, c.z - h.z};
-        const Vec3 p010{c.x - h.x, c.y + h.y, c.z - h.z};
-        const Vec3 p001{c.x - h.x, c.y - h.y, c.z + h.z};
-        const Vec3 p101{c.x + h.x, c.y - h.y, c.z + h.z};
-        const Vec3 p111{c.x + h.x, c.y + h.y, c.z + h.z};
-        const Vec3 p011{c.x - h.x, c.y + h.y, c.z + h.z};
-        addQuad(t, p001, p101, p111, p011, {0, 0, 1});
-        addQuad(t, p100, p000, p010, p110, {0, 0, -1});
-        addQuad(t, p000, p001, p011, p010, {-1, 0, 0});
-        addQuad(t, p101, p100, p110, p111, {1, 0, 0});
-        addQuad(t, p011, p111, p110, p010, {0, 1, 0});
-        addQuad(t, p000, p100, p101, p001, {0, -1, 0});
-    };
-    box({0, 0.12f, 0}, {0.28f, 0.22f, 0.36f});
-    box({0, 0.28f, 0.12f}, {0.20f, 0.18f, 0.20f});
-    box({-0.34f, 0.16f, 0}, {0.42f, 0.06f, 0.22f});
-    box({0.34f, 0.16f, 0}, {0.42f, 0.06f, 0.22f});
-    box({0, 0.02f, -0.22f}, {0.08f, 0.08f, 0.20f});
+    addBox(t, {0, 0.12f, 0}, {0.28f, 0.22f, 0.36f});
+    addBox(t, {0, 0.28f, 0.12f}, {0.20f, 0.18f, 0.20f});
+    addBox(t, {-0.36f, 0.16f, 0}, {0.46f, 0.06f, 0.24f});
+    addBox(t, {0.36f, 0.16f, 0}, {0.46f, 0.06f, 0.24f});
+    addBox(t, {0, 0.02f, -0.22f}, {0.08f, 0.08f, 0.20f});
+    addBox(t, {0, 0.26f, 0.24f}, {0.08f, 0.06f, 0.12f});
     return t;
 }
 
 std::vector<Triangle> makeCharacter() {
     std::vector<Triangle> t;
-    auto box = [&](Vec3 c, Vec3 s) {
-        const Vec3 h = s * 0.5f;
-        const Vec3 p000{c.x - h.x, c.y - h.y, c.z - h.z};
-        const Vec3 p100{c.x + h.x, c.y - h.y, c.z - h.z};
-        const Vec3 p110{c.x + h.x, c.y + h.y, c.z - h.z};
-        const Vec3 p010{c.x - h.x, c.y + h.y, c.z - h.z};
-        const Vec3 p001{c.x - h.x, c.y - h.y, c.z + h.z};
-        const Vec3 p101{c.x + h.x, c.y - h.y, c.z + h.z};
-        const Vec3 p111{c.x + h.x, c.y + h.y, c.z + h.z};
-        const Vec3 p011{c.x - h.x, c.y + h.y, c.z + h.z};
-        addQuad(t, p001, p101, p111, p011, {0, 0, 1});
-        addQuad(t, p100, p000, p010, p110, {0, 0, -1});
-        addQuad(t, p000, p001, p011, p010, {-1, 0, 0});
-        addQuad(t, p101, p100, p110, p111, {1, 0, 0});
-        addQuad(t, p011, p111, p110, p010, {0, 1, 0});
-        addQuad(t, p000, p100, p101, p001, {0, -1, 0});
-    };
-    box({0, 0.08f, 0}, {0.36f, 0.42f, 0.22f});
-    box({0, 0.46f, 0}, {0.28f, 0.26f, 0.26f});
-    box({-0.12f, -0.28f, 0}, {0.12f, 0.32f, 0.12f});
-    box({0.12f, -0.28f, 0}, {0.12f, 0.32f, 0.12f});
-    box({-0.26f, 0.10f, 0}, {0.10f, 0.28f, 0.10f});
-    box({0.26f, 0.10f, 0}, {0.10f, 0.28f, 0.10f});
+    addBox(t, {0, 0.08f, 0}, {0.36f, 0.42f, 0.22f});
+    addBox(t, {0, 0.46f, 0}, {0.28f, 0.26f, 0.26f});
+    addBox(t, {-0.12f, -0.28f, 0}, {0.12f, 0.32f, 0.12f});
+    addBox(t, {0.12f, -0.28f, 0}, {0.12f, 0.32f, 0.12f});
+    addBox(t, {-0.26f, 0.10f, 0}, {0.10f, 0.28f, 0.10f});
+    addBox(t, {0.26f, 0.10f, 0}, {0.10f, 0.28f, 0.10f});
+    return t;
+}
+
+std::vector<Triangle> makeRobot() {
+    std::vector<Triangle> t;
+    addBox(t, {0, 0.10f, 0}, {0.40f, 0.42f, 0.26f});
+    addBox(t, {0, 0.46f, 0}, {0.30f, 0.24f, 0.26f});
+    addBox(t, {-0.28f, 0.10f, 0}, {0.10f, 0.30f, 0.10f});
+    addBox(t, {0.28f, 0.10f, 0}, {0.10f, 0.30f, 0.10f});
+    addBox(t, {-0.12f, -0.26f, 0}, {0.12f, 0.28f, 0.14f});
+    addBox(t, {0.12f, -0.26f, 0}, {0.12f, 0.28f, 0.14f});
+    addBox(t, {0, 0.62f, 0}, {0.06f, 0.14f, 0.06f});
+    addBox(t, {0, 0.48f, 0.14f}, {0.18f, 0.06f, 0.04f});
+    return t;
+}
+
+std::vector<Triangle> makeGhost() {
+    std::vector<Triangle> t;
+    addBox(t, {0, 0.18f, 0}, {0.42f, 0.36f, 0.28f});
+    addBox(t, {0, 0.44f, 0}, {0.34f, 0.22f, 0.28f});
+    addBox(t, {-0.12f, -0.08f, 0}, {0.12f, 0.16f, 0.12f});
+    addBox(t, {0.12f, -0.08f, 0}, {0.12f, 0.16f, 0.12f});
+    return t;
+}
+
+std::vector<Triangle> makeFish() {
+    std::vector<Triangle> t;
+    addBox(t, {0, 0.06f, 0}, {0.50f, 0.22f, 0.18f});
+    addBox(t, {0.22f, 0.08f, 0}, {0.16f, 0.16f, 0.16f});
+    addBox(t, {-0.30f, 0.06f, 0}, {0.12f, 0.20f, 0.06f});
+    addBox(t, {0, 0.20f, 0}, {0.12f, 0.12f, 0.04f});
+    return t;
+}
+
+std::vector<Triangle> makeKnight() {
+    std::vector<Triangle> t = makeCharacter();
+    addBox(t, {0, 0.62f, 0}, {0.22f, 0.16f, 0.22f});
+    addBox(t, {-0.34f, 0.10f, 0.04f}, {0.06f, 0.22f, 0.18f});
+    addBox(t, {0.34f, 0.08f, 0.16f}, {0.06f, 0.06f, 0.40f});
+    return t;
+}
+
+std::vector<Triangle> makeWizard() {
+    std::vector<Triangle> t = makeCharacter();
+    addBox(t, {0, 0.68f, 0}, {0.12f, 0.22f, 0.12f});
+    addBox(t, {0.30f, 0.02f, 0.16f}, {0.05f, 0.05f, 0.42f});
+    return t;
+}
+
+std::vector<Triangle> makeNinja() {
+    std::vector<Triangle> t = makeCharacter();
+    addBox(t, {0, 0.48f, 0.02f}, {0.28f, 0.06f, 0.22f});
+    addBox(t, {0.30f, 0.08f, 0.16f}, {0.05f, 0.05f, 0.38f});
+    return t;
+}
+
+std::vector<Triangle> makeAlien() {
+    std::vector<Triangle> t;
+    addBox(t, {0, 0.04f, 0}, {0.28f, 0.30f, 0.18f});
+    addBox(t, {0, 0.40f, 0}, {0.36f, 0.28f, 0.28f});
+    addBox(t, {-0.22f, 0.04f, 0}, {0.08f, 0.26f, 0.08f});
+    addBox(t, {0.22f, 0.04f, 0}, {0.08f, 0.26f, 0.08f});
+    addBox(t, {-0.08f, -0.24f, 0}, {0.09f, 0.22f, 0.09f});
+    addBox(t, {0.08f, -0.24f, 0}, {0.09f, 0.22f, 0.09f});
+    addBox(t, {-0.08f, 0.58f, 0}, {0.04f, 0.16f, 0.04f});
+    addBox(t, {0.08f, 0.58f, 0}, {0.04f, 0.16f, 0.04f});
+    return t;
+}
+
+std::vector<Triangle> makeRoyal() {
+    std::vector<Triangle> t = makeCharacter();
+    addBox(t, {0, 0.64f, 0}, {0.30f, 0.08f, 0.30f});
+    addBox(t, {0, -0.02f, 0}, {0.46f, 0.20f, 0.28f});
+    return t;
+}
+
+std::vector<Triangle> makeSnow() {
+    std::vector<Triangle> t;
+    addBox(t, {0, -0.12f, 0}, {0.42f, 0.32f, 0.42f});
+    addBox(t, {0, 0.18f, 0}, {0.32f, 0.26f, 0.32f});
+    addBox(t, {0, 0.42f, 0}, {0.24f, 0.22f, 0.24f});
+    addBox(t, {0, 0.40f, 0.16f}, {0.06f, 0.06f, 0.14f});
+    return t;
+}
+
+std::vector<Triangle> makePumpkin() {
+    std::vector<Triangle> t;
+    addBox(t, {0, 0.04f, 0}, {0.50f, 0.40f, 0.50f});
+    addBox(t, {0, 0.30f, 0}, {0.10f, 0.16f, 0.10f});
+    return t;
+}
+
+std::vector<Triangle> makeStar() {
+    std::vector<Triangle> t;
+    addBox(t, {0, 0.08f, 0}, {0.56f, 0.16f, 0.16f});
+    addBox(t, {0, 0.08f, 0}, {0.16f, 0.56f, 0.16f});
+    addBox(t, {0, 0.08f, 0}, {0.40f, 0.16f, 0.16f});
     return t;
 }
 
@@ -229,9 +297,31 @@ const std::vector<Triangle>& meshOfObject(const GameObject& object) {
         static const auto quadruped = makeQuadruped();
         static const auto flyer = makeFlyer();
         static const auto round = makeSphere();
+        static const auto robot = makeRobot();
+        static const auto ghost = makeGhost();
+        static const auto fish = makeFish();
+        static const auto knight = makeKnight();
+        static const auto wizard = makeWizard();
+        static const auto ninja = makeNinja();
+        static const auto alien = makeAlien();
+        static const auto royal = makeRoyal();
+        static const auto snow = makeSnow();
+        static const auto pumpkin = makePumpkin();
+        static const auto star = makeStar();
         if (kind == "quadruped") return quadruped;
         if (kind == "flyer") return flyer;
         if (kind == "round") return round;
+        if (kind == "robot") return robot;
+        if (kind == "ghost") return ghost;
+        if (kind == "fish") return fish;
+        if (kind == "knight") return knight;
+        if (kind == "wizard") return wizard;
+        if (kind == "ninja") return ninja;
+        if (kind == "alien") return alien;
+        if (kind == "royal") return royal;
+        if (kind == "snow") return snow;
+        if (kind == "pumpkin") return pumpkin;
+        if (kind == "star") return star;
         return character;
     }
     return meshOf(object.mesh);

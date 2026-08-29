@@ -86,7 +86,8 @@ void Camera::refreshOrbit() {
 
 const char* characterKindOf(const std::string& catalogId) {
     if (catalogId == "kedi" || catalogId == "kopek" || catalogId == "tavsan" || catalogId == "ayi" ||
-        catalogId == "tilki" || catalogId == "dinozor" || catalogId == "kurbaga" || catalogId == "karinca") {
+        catalogId == "tilki" || catalogId == "dinozor" || catalogId == "kurbaga" || catalogId == "karinca" ||
+        catalogId == "unicorn") {
         return "quadruped";
     }
     if (catalogId == "kus" || catalogId == "kelebek" || catalogId == "ari" || catalogId == "melek" ||
@@ -94,9 +95,18 @@ const char* characterKindOf(const std::string& catalogId) {
         catalogId == "baykus") {
         return "flyer";
     }
-    if (catalogId == "top" || catalogId == "kabak" || catalogId == "yildiz" || catalogId == "balik") {
-        return "round";
-    }
+    if (catalogId == "top") return "round";
+    if (catalogId == "balik") return "fish";
+    if (catalogId == "robot" || catalogId == "golem") return "robot";
+    if (catalogId == "hayalet") return "ghost";
+    if (catalogId == "ninja") return "ninja";
+    if (catalogId == "sovalye" || catalogId == "samuray") return "knight";
+    if (catalogId == "sihirbaz" || catalogId == "cadi") return "wizard";
+    if (catalogId == "uzayli") return "alien";
+    if (catalogId == "prenses" || catalogId == "kral") return "royal";
+    if (catalogId == "kardanadam") return "snow";
+    if (catalogId == "kabak") return "pumpkin";
+    if (catalogId == "yildiz") return "star";
     return "humanoid";
 }
 

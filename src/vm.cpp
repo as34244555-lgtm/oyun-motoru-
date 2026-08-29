@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <utility>
 
@@ -314,6 +315,20 @@ BlockVM::Value BlockVM::eval(Context& ctx, const Block& block) {
         if (i < 0 || i >= static_cast<int>(list.size())) return Value::num(0);
         return Value::num(list[static_cast<size_t>(i)]);
     }
+    if (op == "var_gt") {
+        const auto it = vars_.find(arg(block, "name", "skor"));
+        return Value::booleanValue(it != vars_.end() && it->second > argf(block, "value"));
+    }
+    if (op == "timer_gt") return Value::booleanValue(timer_ > argf(block, "seconds", argf(block, "value", 1)));
+    if (op == "random_chance") {
+        const double t = static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+        return Value::booleanValue(t * 100.0 < argf(block, "value", 50));
+    }
+    if (op == "edge") {
+        if (!ctx.self) return Value::booleanValue(false);
+        return Value::booleanValue(std::fabs(ctx.self->transform.position.x) > 6 ||
+                                   std::fabs(ctx.self->transform.position.z) > 6);
+    }
     return Value::booleanValue(false);
 }
 
@@ -328,7 +343,14 @@ void BlockVM::runBlock(Context& ctx, const Block& block) {
                             op == "list_clear" || op == "set_camera_orbit" || op == "set_camera_yaw" ||
                             op == "set_camera_pitch" || op == "change_camera_yaw" || op == "change_camera_pitch" ||
                             op == "set_camera_distance" || op == "camera_follow" || op == "camera_unfollow" ||
-                            op == "camera_preset";
+                            op == "camera_preset" || op == "if_compare" || op == "if_var" || op == "if_random" ||
+                            op == "repeat_until_var" || op == "wait_until_key" || op == "wait_until_var" ||
+                            op == "stop_this" || op == "stop_all" || op == "calc" || op == "unary_set" ||
+                            op == "pick_random" || op == "compare_set" || op == "copy_var" || op == "list_delete" ||
+                            op == "list_replace" || op == "list_len_store" || op == "store_sensor" ||
+                            op == "store_timer" || op == "store_random" || op == "change_camera_distance" ||
+                            op == "set_camera_target" || op == "camera_look_name" || op == "camera_shake" ||
+                            op == "spawn" || op == "set_sky" || op == "play_drum";
     if (!obj && noTargetOk) {
     } else if (!obj) {
         return;
@@ -556,7 +578,201 @@ void BlockVM::runBlock(Context& ctx, const Block& block) {
         lists_[arg(block, "name", "liste")].clear();
     } else if (op == "reset_timer") {
         timer_ = 0;
-    } else if (op == "wait") {
+    } else if (op == "set_rot_x") {
+        obj->transform.rotation.x = argf(block, "value");
+    } else if (op == "set_rot_y") {
+        obj->transform.rotation.y = argf(block, "value");
+    } else if (op == "set_rot_z") {
+        obj->transform.rotation.z = argf(block, "value");
+    } else if (op == "change_rot_x") {
+        obj->transform.rotation.x += argf(block, "value", 10) * ctx.dt;
+    } else if (op == "change_rot_y") {
+        obj->transform.rotation.y += argf(block, "value", 10) * ctx.dt;
+    } else if (op == "change_rot_z") {
+        obj->transform.rotation.z += argf(block, "value", 10) * ctx.dt;
+    } else if (op == "stop_moving") {
+        obj->velocity = {0, 0, 0};
+    } else if (op == "set_dynamic") {
+        obj->dynamic = arg(block, "value", "true") != "false";
+    } else if (op == "clear_say") {
+        obj->sayText.clear();
+        obj->sayTime = 0;
+    } else if (op == "change_opacity") {
+        obj->opacity = clampf(obj->opacity + argf(block, "value", -10) / 100.0f, 0, 1);
+    } else if (op == "go_front") {
+        obj->layer += 1;
+    } else if (op == "go_back") {
+        obj->layer -= 1;
+    } else if (op == "change_layer") {
+        obj->layer += static_cast<int>(argf(block, "value", 1));
+    } else if (op == "set_sky") {
+        if (ctx.scene) ctx.scene->sky = Color::fromHex(arg(block, "color", "#73b8f2"));
+    } else if (op == "play_drum") {
+        lastSound_ = arg(block, "name", "kick");
+        if (ctx.scene) ctx.scene->lastSound = lastSound_;
+    } else if (op == "if_compare") {
+        Block cond;
+        cond.op = "compare";
+        cond.args = block.args;
+        runStack(ctx, eval(ctx, cond).asBool() ? (block.thenBranch.empty() ? block.stack : block.thenBranch)
+                                              : block.elseBranch);
+    } else if (op == "if_var") {
+        const auto it = vars_.find(arg(block, "name", "skor"));
+        const double a = it == vars_.end() ? 0 : it->second;
+        const double b = argf(block, "value", 0);
+        const std::string cmp = arg(block, "cmp", ">");
+        bool ok = a > b;
+        if (cmp == "<") ok = a < b;
+        else if (cmp == "=" || cmp == "==") ok = std::fabs(a - b) < 1e-5;
+        else if (cmp == ">=") ok = a >= b;
+        else if (cmp == "<=") ok = a <= b;
+        runStack(ctx, ok ? (block.thenBranch.empty() ? block.stack : block.thenBranch) : block.elseBranch);
+    } else if (op == "if_random") {
+        Block cond;
+        cond.op = "random_chance";
+        cond.args = block.args;
+        runStack(ctx, eval(ctx, cond).asBool() ? (block.thenBranch.empty() ? block.stack : block.thenBranch)
+                                              : block.elseBranch);
+    } else if (op == "repeat_until_var") {
+        const std::string name = arg(block, "name", "skor");
+        const double limit = argf(block, "value", 10);
+        int guard = 16;
+        while (guard-- > 0 && ctx.budget > 0) {
+            const auto it = vars_.find(name);
+            if (it != vars_.end() && it->second >= limit) break;
+            runStack(ctx, block.stack.empty() ? block.thenBranch : block.stack);
+        }
+    } else if (op == "stop_this") {
+        ctx.yielded = true;
+    } else if (op == "stop_all") {
+        ctx.yielded = true;
+        ctx.budget = 0;
+    } else if (op == "calc") {
+        Block m;
+        m.op = "math";
+        m.args = block.args;
+        vars_[arg(block, "name", "skor")] = eval(ctx, m).asNumber();
+    } else if (op == "unary_set") {
+        Block m;
+        m.op = "unary";
+        m.args = block.args;
+        vars_[arg(block, "name", "skor")] = eval(ctx, m).asNumber();
+    } else if (op == "pick_random" || op == "store_random") {
+        Block m;
+        m.op = "random";
+        m.args = block.args;
+        vars_[arg(block, "name", "r")] = eval(ctx, m).asNumber();
+    } else if (op == "compare_set") {
+        Block m;
+        m.op = "compare";
+        m.args = block.args;
+        vars_[arg(block, "name", "ok")] = eval(ctx, m).asBool() ? 1 : 0;
+    } else if (op == "copy_var") {
+        const auto it = vars_.find(arg(block, "from", "skor"));
+        vars_[arg(block, "name", "eski")] = it == vars_.end() ? 0 : it->second;
+    } else if (op == "list_delete") {
+        auto& list = lists_[arg(block, "name", "liste")];
+        int i = static_cast<int>(argf(block, "index", 1)) - 1;
+        if (i >= 0 && i < static_cast<int>(list.size())) list.erase(list.begin() + i);
+    } else if (op == "list_replace") {
+        auto& list = lists_[arg(block, "name", "liste")];
+        int i = static_cast<int>(argf(block, "index", 1)) - 1;
+        if (i >= 0 && i < static_cast<int>(list.size())) list[static_cast<size_t>(i)] = argf(block, "value");
+    } else if (op == "list_len_store") {
+        vars_[arg(block, "into", "n")] = static_cast<double>(lists_[arg(block, "name", "liste")].size());
+    } else if (op == "show_var") {
+        const auto it = vars_.find(arg(block, "name", "skor"));
+        if (obj) {
+            char buf[64];
+            std::snprintf(buf, sizeof(buf), "%s = %.2f", arg(block, "name", "skor").c_str(),
+                          it == vars_.end() ? 0.0 : it->second);
+            obj->sayText = buf;
+            obj->sayTime = 2;
+        }
+    } else if (op == "change_pen_size") {
+        obj->penSize = std::max(1.0f, obj->penSize + argf(block, "value", 1));
+    } else if (op == "set_pen_color") {
+        obj->penColor = Color::fromHex(arg(block, "color", "#22aa66"));
+    } else if (op == "stamp") {
+        if (ctx.scene) ctx.scene->pendingClones.push_back(obj->id);
+    } else if (op == "store_x") {
+        vars_[arg(block, "name", "x")] = obj ? obj->transform.position.x : 0;
+    } else if (op == "store_y") {
+        vars_[arg(block, "name", "y")] = obj ? obj->transform.position.y : 0;
+    } else if (op == "store_z") {
+        vars_[arg(block, "name", "z")] = obj ? obj->transform.position.z : 0;
+    } else if (op == "store_timer") {
+        vars_[arg(block, "name", "sure")] = timer_;
+    } else if (op == "store_distance") {
+        Block d;
+        d.op = "distance_to";
+        d.args = block.args;
+        if (!d.args.count("name") && block.args.count("target")) d.args["name"] = arg(block, "target");
+        vars_[arg(block, "name", "mesafe")] = eval(ctx, d).asNumber();
+    } else if (op == "store_sensor") {
+        const std::string sensor = arg(block, "sensor", "x");
+        const std::string name = arg(block, "name", "deger");
+        double v = 0;
+        if (sensor == "x") v = obj ? obj->transform.position.x : 0;
+        else if (sensor == "y") v = obj ? obj->transform.position.y : 0;
+        else if (sensor == "z") v = obj ? obj->transform.position.z : 0;
+        else if (sensor == "heading") v = obj ? obj->transform.rotation.y : 0;
+        else if (sensor == "timer") v = timer_;
+        else if (sensor == "size") v = obj ? obj->size : 100;
+        else if (sensor == "costume") v = obj ? obj->costumeIndex + 1 : 1;
+        else if (sensor == "grounded") v = obj && obj->grounded ? 1 : 0;
+        else if (sensor == "key") v = ctx.keys && ctx.keys->count(arg(block, "key", "Space")) ? 1 : 0;
+        else if (sensor == "volume") v = ctx.scene ? ctx.scene->volume : 80;
+        else if (sensor == "distance") {
+            Block d;
+            d.op = "distance_to";
+            d.args["name"] = arg(block, "target", arg(block, "name", ""));
+            v = eval(ctx, d).asNumber();
+        } else if (sensor == "random") {
+            Block r;
+            r.op = "random";
+            r.args = block.args;
+            v = eval(ctx, r).asNumber();
+        }
+        vars_[name] = v;
+    } else if (op == "change_camera_distance") {
+        if (ctx.scene) {
+            ctx.scene->camera.distance += argf(block, "value", -1);
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "set_camera_target") {
+        if (ctx.scene) {
+            ctx.scene->camera.target = {argf(block, "x"), argf(block, "y", 0.5f), argf(block, "z")};
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "camera_look_name") {
+        if (ctx.scene) {
+            GameObject* other = ctx.scene->find(arg(block, "name"));
+            if (!other) other = ctx.scene->findByName(arg(block, "name"));
+            if (other) {
+                ctx.scene->camera.target = other->transform.position;
+                ctx.scene->camera.refreshOrbit();
+            }
+        }
+    } else if (op == "camera_shake") {
+        if (ctx.scene) {
+            const float mag = argf(block, "value", 8);
+            ctx.scene->camera.yaw += (static_cast<float>(std::rand() % 200) / 100.0f - 1.0f) * mag;
+            ctx.scene->camera.pitch += (static_cast<float>(std::rand() % 200) / 100.0f - 1.0f) * mag * 0.4f;
+            ctx.scene->camera.refreshOrbit();
+        }
+    } else if (op == "spawn") {
+        if (ctx.scene) {
+            GameObject spawned;
+            spawned.mesh = meshTypeFromName(arg(block, "mesh", "cube"));
+            spawned.transform.position = {argf(block, "x"), argf(block, "y", 1), argf(block, "z")};
+            spawned.dynamic = spawned.mesh != MeshType::Plane;
+            spawned.color = {0.9f, 0.4f, 0.2f};
+            ctx.scene->add(spawned);
+        }
+    } else if (op == "delete_this") {
+        if (obj && ctx.scene) ctx.scene->remove(obj->id);
+    } else if (op == "wait" || op == "wait_until_key" || op == "wait_until_var") {
         // handled at script level
     } else if (op == "repeat" || op == "forever") {
         const int times = op == "forever" ? 1 : std::max(0, std::min(64, static_cast<int>(argf(block, "times", 1))));
@@ -613,6 +829,8 @@ void BlockVM::tick(Scene& scene, float dt, const std::unordered_set<std::string>
             if (!script.startDone) {
                 run = true;
                 script.startDone = true;
+            } else if (script.waitLeft > 0) {
+                run = true;
             }
         } else if (hat == "every_frame" || hat == "her_kare") {
             run = true;
@@ -625,6 +843,17 @@ void BlockVM::tick(Scene& scene, float dt, const std::unordered_set<std::string>
         } else if (hat == "when_clone" || hat == "kopya_olunca") {
             run = self->isClone && !script.startDone;
             if (run) script.startDone = true;
+        } else if (hat == "when_timer" || hat == "sure_dolunca") {
+            run = timer_ >= argf(script.hat, "seconds", 1) && !script.startDone;
+            if (run) script.startDone = true;
+        } else if (hat == "when_var" || hat == "degisken_buyukse") {
+            const auto it = vars_.find(arg(script.hat, "name", "skor"));
+            run = it != vars_.end() && it->second > argf(script.hat, "value", 0);
+        } else if (hat == "when_touching" || hat == "deginece") {
+            Block cond;
+            cond.op = "touching";
+            cond.args = script.hat.args;
+            run = eval(ctx, cond).asBool();
         }
 
         if (!run) continue;
@@ -634,9 +863,24 @@ void BlockVM::tick(Scene& scene, float dt, const std::unordered_set<std::string>
         }
 
         for (const auto& block : script.stack) {
-            if (ctx.budget <= 0) break;
-            if (lower(block.op) == "wait") {
+            if (ctx.budget <= 0 || ctx.yielded) break;
+            const std::string bop = lower(block.op);
+            if (bop == "wait") {
                 script.waitLeft = argf(block, "seconds", 1);
+                break;
+            }
+            if (bop == "wait_until_key") {
+                if (!keys.count(arg(block, "key", "Space"))) break;
+                continue;
+            }
+            if (bop == "wait_until_var") {
+                const auto it = vars_.find(arg(block, "name", "skor"));
+                if (it == vars_.end() || it->second < argf(block, "value", 1)) break;
+                continue;
+            }
+            if (bop == "stop_this") break;
+            if (bop == "stop_all") {
+                ctx.budget = 0;
                 break;
             }
             runBlock(ctx, block);
