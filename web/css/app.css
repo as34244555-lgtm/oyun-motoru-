@@ -118,7 +118,7 @@ button { cursor: pointer; }
 
 .gui {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-columns: minmax(0, 1fr) 480px;
   min-height: 0;
   background: var(--gui-bg);
 }
@@ -378,10 +378,10 @@ button { cursor: pointer; }
 
 .sprite-pane {
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr) 88px;
+  grid-template-columns: 150px minmax(160px, 1fr) 86px;
   gap: 8px;
-  min-height: 148px;
-  max-height: 210px;
+  min-height: 168px;
+  max-height: 236px;
 }
 .sprite-info, .sprite-browser, .backdrop-browser {
   background: #fff;
@@ -402,7 +402,7 @@ button { cursor: pointer; }
 }
 .sprite-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
   gap: 6px;
   padding: 8px;
   overflow: auto;
