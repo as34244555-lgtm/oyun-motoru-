@@ -90,7 +90,7 @@ const char* characterKindOf(const std::string& catalogId) {
         catalogId == "unicorn") {
         return "quadruped";
     }
-    if (catalogId == "kus" || catalogId == "kelebek" || catalogId == "ari" || catalogId == "melek" ||
+    if (catalogId == "kus" || catalogId == "kelebek" || catalogId == "ari" ||
         catalogId == "peri" || catalogId == "ejderha" || catalogId == "yarasa" || catalogId == "penguen" ||
         catalogId == "baykus") {
         return "flyer";

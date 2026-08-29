@@ -14,7 +14,6 @@ export function characterKind(catalogId) {
     kus: "flyer",
     kelebek: "flyer",
     ari: "flyer",
-    melek: "flyer",
     peri: "flyer",
     ejderha: "flyer",
     yarasa: "flyer",
@@ -152,7 +151,7 @@ export function makeCharacter3D(object) {
     const tail = box(0.08, 0.06, 0.20, dark, 0, 0.24, -0.22);
     group.add(body, head, beak, wingL, wingR, tail);
     addEyes(group, 0, 0.48, 0.18, 0.05, 0.025);
-    if (id === "melek" || id === "peri") group.add(sphere(0.05, 0xffe08a, 0, 0.62, 0.08, 10));
+    if (id === "peri") group.add(sphere(0.05, 0xffe08a, 0, 0.62, 0.08, 10));
     if (id === "ejderha") group.add(cone(0.05, 0.14, dark, 0, 0.58, 0.04));
     if (id === "penguen") {
       group.add(box(0.22, 0.28, 0.08, 0xf4f4f4, 0, 0.26, 0.12));

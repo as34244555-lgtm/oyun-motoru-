@@ -11,7 +11,7 @@ function creatureSvg({ hue, kind, frame = 0, name = "" }) {
   const ear = kind === "kedi" || kind === "kopek" || kind === "tavsan" || kind === "tilki" ? 1 : 0;
   const horn = kind === "unicorn" || kind === "ejderha" ? 1 : 0;
   const hat = ["sihirbaz", "asci", "korsan", "kral", "prenses"].includes(kind) ? 1 : 0;
-  const wing = ["kus", "kelebek", "melek", "peri", "ejderha", "yarasa"].includes(kind) ? 1 : 0;
+  const wing = ["kus", "kelebek", "peri", "ejderha", "yarasa"].includes(kind) ? 1 : 0;
   return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
     <ellipse cx="64" cy="118" rx="26" ry="6" fill="#000" opacity=".16"/>
     ${wing ? `<ellipse cx="${40 + step / 3}" cy="70" rx="16" ry="8" fill="${l}" transform="rotate(-20 40 70)"/>
@@ -51,7 +51,6 @@ const RAW = [
   ["unicorn", "Unicorn", "efsane", 280, "unicorn"],
   ["hayalet", "Hayalet", "efsane", 190, "hayalet"],
   ["peri", "Peri", "efsane", 310, "peri"],
-  ["melek", "Melek", "efsane", 50, "melek"],
   ["golem", "Golem", "efsane", 80, "golem"],
   ["robot", "Robot", "kahraman", 200, "robot"],
   ["kahraman", "Kahraman", "kahraman", 220, "kahraman"],
@@ -131,7 +130,6 @@ export function characterKindOf(id) {
     kus: "flyer",
     kelebek: "flyer",
     ari: "flyer",
-    melek: "flyer",
     peri: "flyer",
     ejderha: "flyer",
     yarasa: "flyer",
