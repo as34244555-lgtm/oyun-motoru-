@@ -158,16 +158,16 @@ export const DEFS = [
 ];
 
 const CATS = [
-  { id: "events", label: "Olaylar" },
-  { id: "motion", label: "Hareket" },
-  { id: "looks", label: "Görünüm" },
-  { id: "sound", label: "Ses" },
-  { id: "control", label: "Kontrol" },
-  { id: "sensing", label: "Algı" },
-  { id: "ops", label: "İşlemler" },
-  { id: "vars", label: "Değişken" },
-  { id: "pen", label: "Kalem" },
-  { id: "world", label: "Dünya / 3D" },
+  { id: "motion", label: "Hareket", color: "#4C97FF" },
+  { id: "looks", label: "Görünüm", color: "#9966FF" },
+  { id: "sound", label: "Ses", color: "#CF63CF" },
+  { id: "events", label: "Olaylar", color: "#FFBF00" },
+  { id: "control", label: "Kontrol", color: "#FFAB19" },
+  { id: "sensing", label: "Algılama", color: "#5CB1D6" },
+  { id: "ops", label: "Operatörler", color: "#59C059" },
+  { id: "vars", label: "Değişkenler", color: "#FF8C1A" },
+  { id: "pen", label: "Kalem", color: "#0FBD8C" },
+  { id: "world", label: "Sahne", color: "#0FBD8C" },
 ];
 
 function defOf(op) {
@@ -291,10 +291,11 @@ function renderBlock(block, onChange, onRemove) {
   return el;
 }
 
-export function createBlockEditor({ paletteEl, scriptsEl, onChange }) {
+export function createBlockEditor({ paletteEl, scriptsEl, catsEl, onChange }) {
   let scripts = [];
   let target = "";
   let query = "";
+  let selectedCat = "motion";
 
   function emit() {
     onChange?.({ scripts: clone(scripts) });
@@ -323,37 +324,60 @@ export function createBlockEditor({ paletteEl, scriptsEl, onChange }) {
     render();
   }
 
+  function renderCategories() {
+    if (!catsEl) return;
+    catsEl.innerHTML = "";
+    for (const cat of CATS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `cat-btn${cat.id === selectedCat ? " active" : ""}`;
+      btn.innerHTML = `<span class="cat-dot" style="background:${cat.color}"></span>${cat.label}`;
+      btn.addEventListener("click", () => {
+        selectedCat = cat.id;
+        query = "";
+        renderCategories();
+        renderPalette();
+      });
+      catsEl.appendChild(btn);
+    }
+  }
+
   function renderPalette() {
     paletteEl.innerHTML = "";
+    const cat = CATS.find((c) => c.id === selectedCat) || CATS[0];
+    const title = document.createElement("div");
+    title.className = "flyout-title";
+    title.style.color = cat.color;
+    title.textContent = cat.label;
+    paletteEl.appendChild(title);
     const search = document.createElement("input");
     search.type = "search";
-    search.placeholder = "blok ara...";
+    search.placeholder = "Ara";
     search.value = query;
     search.addEventListener("input", () => {
+      const pos = search.selectionStart;
       query = search.value.toLowerCase();
       renderPalette();
+      const next = paletteEl.querySelector("input[type=search]");
+      if (next) {
+        next.focus();
+        try { next.setSelectionRange(pos, pos); } catch (_) { /* ignore */ }
+      }
     });
     paletteEl.appendChild(search);
-    const count = document.createElement("div");
-    count.className = "cat";
-    count.textContent = `${DEFS.length} blok`;
-    paletteEl.appendChild(count);
-    for (const cat of CATS) {
-      const items = DEFS.filter((d) => d.cat === cat.id && d.title.toLowerCase().includes(query));
-      if (!items.length) continue;
-      const h = document.createElement("div");
-      h.className = "cat";
-      h.textContent = cat.label;
-      paletteEl.appendChild(h);
-      for (const def of items) {
-        const item = document.createElement("div");
-        item.className = `palette-item ${def.cls}`;
-        item.textContent = def.title;
-        item.draggable = true;
-        item.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/blok-op", def.op));
-        item.addEventListener("click", () => addBlock(def.op));
-        paletteEl.appendChild(item);
-      }
+    const items = DEFS.filter((d) => {
+      const match = d.title.toLowerCase().includes(query);
+      if (query) return match;
+      return d.cat === selectedCat && match;
+    });
+    for (const def of items) {
+      const item = document.createElement("div");
+      item.className = `palette-item ${def.cls}`;
+      item.textContent = def.title;
+      item.draggable = true;
+      item.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/blok-op", def.op));
+      item.addEventListener("click", () => addBlock(def.op));
+      paletteEl.appendChild(item);
     }
   }
 
@@ -363,7 +387,7 @@ export function createBlockEditor({ paletteEl, scriptsEl, onChange }) {
     if (!mine.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "Soldan bir olay bloğu ekle, sonra hareket / kostüm / ses bloklarını tıkla.";
+      empty.textContent = "Soldaki bir bloğu buraya sürükle veya tıkla. Önce bir Olaylar bloğu ekle.";
       scriptsEl.appendChild(empty);
       return;
     }
@@ -419,6 +443,7 @@ export function createBlockEditor({ paletteEl, scriptsEl, onChange }) {
     if (op) addBlock(op);
   });
 
+  renderCategories();
   renderPalette();
 
   return {

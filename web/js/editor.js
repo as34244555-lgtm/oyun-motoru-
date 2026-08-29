@@ -50,6 +50,7 @@ let cameraBusy = false;
 const blocks = createBlockEditor({
   paletteEl: document.getElementById("palette"),
   scriptsEl: document.getElementById("scripts"),
+  catsEl: document.getElementById("categories"),
   onChange: async (payload) => {
     if (savingScripts) return;
     savingScripts = true;
@@ -68,6 +69,7 @@ function selected() {
 function renderHierarchy() {
   hierarchyEl.innerHTML = "";
   for (const object of state.objects || []) {
+    if (object.mesh === "plane" || object.id === "ground") continue;
     const item = document.createElement("div");
     item.className = `tree-item${object.id === selectedId ? " active" : ""}`;
     const swatch = document.createElement("span");
@@ -79,25 +81,31 @@ function renderHierarchy() {
       const thumb = document.createElement("span");
       thumb.className = "swatch";
       thumb.style.background = "transparent";
-      thumb.style.width = "22px";
-      thumb.style.height = "18px";
+      thumb.style.width = "36px";
+      thumb.style.height = "28px";
       const ch = CHARACTERS.find((c) => c.id === object.catalogId);
       thumb.innerHTML = isometricThumb(ch?.hue ?? 28, characterKindOf(object.catalogId));
       const svg = thumb.querySelector("svg");
       if (svg) {
-        svg.style.width = "22px";
-        svg.style.height = "18px";
+        svg.style.width = "36px";
+        svg.style.height = "28px";
       }
       swatch.replaceWith(thumb);
     }
-    const kind = document.createElement("span");
-    kind.className = "kind";
-    kind.textContent = object.catalogId || object.mesh;
-    item.append(swatch, name, kind);
+    item.append(swatch, name);
     item.addEventListener("click", () => selectObject(object.id));
     hierarchyEl.appendChild(item);
   }
-  statusCount.textContent = String(state.objects?.length || 0);
+  statusCount.textContent = String((state.objects || []).filter((o) => o.mesh !== "plane" && o.id !== "ground").length || 0);
+  const card = document.getElementById("backdrop-card");
+  if (card) {
+    const bg = BACKDROPS.find((b) => b.id === state.backdrop) || BACKDROPS[0];
+    card.textContent = bg?.name || "Sahne";
+    if (bg) {
+      card.style.background = `linear-gradient(180deg, ${bg.sky} 0%, ${bg.sky} 46%, ${bg.ground} 46%)`;
+    }
+  }
+  renderCostumeTab();
 }
 
 function numField(label, value, onCommit, always = false) {
@@ -150,17 +158,16 @@ function renderCameraPanel(parent) {
 function renderInspector() {
   const object = selected();
   inspectorEl.innerHTML = "";
-  renderCameraPanel(inspectorEl);
   if (!object) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "Bir nesne seç.";
+    empty.textContent = "Bir kukla seç.";
     inspectorEl.appendChild(empty);
     return;
   }
   const name = document.createElement("label");
   name.className = "field";
-  name.textContent = "Ad";
+  name.textContent = "Kukla";
   const nameIn = document.createElement("input");
   nameIn.type = "text";
   nameIn.value = object.name;
@@ -171,6 +178,32 @@ function renderInspector() {
   });
   name.appendChild(nameIn);
   inspectorEl.appendChild(name);
+
+  const pos = object.position || { x: 0, y: 0, z: 0 };
+  const row = document.createElement("div");
+  row.className = "row";
+  for (const axis of ["x", "y", "z"]) {
+    row.appendChild(numField(axis.toUpperCase(), pos[axis], async (v) => {
+      await api.updateObject(object.id, { position: { ...pos, [axis]: v } });
+      await refresh();
+    }));
+  }
+  inspectorEl.appendChild(row);
+
+  const size = document.createElement("label");
+  size.className = "field";
+  size.textContent = "Boyut %";
+  const sizeIn = document.createElement("input");
+  sizeIn.type = "number";
+  sizeIn.value = Math.round((object.scale?.x || 1) * 100);
+  sizeIn.disabled = !!state.playing;
+  sizeIn.addEventListener("change", async () => {
+    const s = Number(sizeIn.value) / 100;
+    await api.updateObject(object.id, { scale: { x: s, y: s, z: s } });
+    await refresh();
+  });
+  size.appendChild(sizeIn);
+  inspectorEl.appendChild(size);
 
   const color = document.createElement("label");
   color.className = "field";
@@ -186,44 +219,10 @@ function renderInspector() {
   color.appendChild(colorIn);
   inspectorEl.appendChild(color);
 
-  const vecRow = (title, vec, key) => {
-    const box = document.createElement("div");
-    const h = document.createElement("label");
-    h.className = "field";
-    h.textContent = title;
-    box.appendChild(h);
-    const row = document.createElement("div");
-    row.className = "row";
-    for (const axis of ["x", "y", "z"]) {
-      row.appendChild(numField(axis.toUpperCase(), vec[axis], async (v) => {
-        const next = { ...vec, [axis]: v };
-        await api.updateObject(object.id, { [key]: next });
-        await refresh();
-      }));
-    }
-    box.appendChild(row);
-    inspectorEl.appendChild(box);
-  };
-  if (object.sayText) {
-    const say = document.createElement("div");
-    say.className = "empty";
-    say.textContent = `Konuşuyor: ${object.sayText}`;
-    inspectorEl.appendChild(say);
-  }
-  if ((object.costumes || []).length) {
-    const row = document.createElement("label");
-    row.className = "field";
-    row.textContent = `Kostüm (${(object.costumeIndex || 0) + 1}/${object.costumes.length})`;
-    inspectorEl.appendChild(row);
-  }
-  vecRow("Konum", object.position, "position");
-  vecRow("Döndürme", object.rotation, "rotation");
-  vecRow("Ölçek", object.scale, "scale");
-
   const del = document.createElement("button");
   del.className = "btn danger";
   del.type = "button";
-  del.textContent = "Nesneyi sil";
+  del.textContent = "Sil";
   del.disabled = !!state.playing || object.id === "ground";
   del.addEventListener("click", async () => {
     await api.removeObject(object.id);
@@ -231,6 +230,63 @@ function renderInspector() {
     await refresh();
   });
   inspectorEl.appendChild(del);
+}
+
+function renderCostumeTab() {
+  const name = document.getElementById("costume-target");
+  const list = document.getElementById("costume-list");
+  if (!name || !list) return;
+  const object = selected();
+  name.textContent = object?.name || "—";
+  list.innerHTML = "";
+  const costumes = object?.costumes || [];
+  if (!costumes.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Bu kuklanın henüz boyalı kostümü yok. Kostüm çiz ile ekle.";
+    list.appendChild(empty);
+    return;
+  }
+  costumes.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `btn${i === (object.costumeIndex || 0) ? " primary" : ""}`;
+    b.textContent = c.name || `kostüm ${i + 1}`;
+    list.appendChild(b);
+  });
+}
+
+function renderSoundTab() {
+  const list = document.getElementById("sound-list");
+  if (!list || list.dataset.ready) return;
+  list.dataset.ready = "1";
+  for (const name of ["meow", "jump", "coin", "hit", "win", "boom", "C4", "E4", "G4"]) {
+    const row = document.createElement("div");
+    row.className = "sound-item";
+    row.innerHTML = `<span>${name}</span>`;
+    const play = document.createElement("button");
+    play.type = "button";
+    play.className = "btn primary";
+    play.textContent = "Çal";
+    play.addEventListener("click", () => playTone(name, 80));
+    row.appendChild(play);
+    list.appendChild(row);
+  }
+}
+
+function setEditorTab(tab) {
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+  document.getElementById("tab-code")?.classList.toggle("hidden", tab !== "code");
+  document.getElementById("tab-costumes")?.classList.toggle("hidden", tab !== "costumes");
+  document.getElementById("tab-sounds")?.classList.toggle("hidden", tab !== "sounds");
+  if (tab === "costumes") renderCostumeTab();
+  if (tab === "sounds") renderSoundTab();
+}
+
+function closeMenus() {
+  document.querySelectorAll(".menu.open, .add-wrap.open").forEach((el) => el.classList.remove("open"));
 }
 
 function setPlaying(playing) {
@@ -256,7 +312,7 @@ async function refresh() {
   state = await api.state();
   const objects = state.objects || [];
   if (!selectedId && objects.length) {
-    selectedId = (objects.find((o) => o.id === "cube") || objects[0]).id;
+    selectedId = (objects.find((o) => o.id === "cat") || objects.find((o) => o.id === "cube") || objects.find((o) => o.mesh !== "plane") || objects[0]).id;
   }
   if (selectedId && !objects.some((o) => o.id === selectedId) && objects.length) {
     selectedId = objects[0].id;
@@ -302,7 +358,7 @@ function renderSpeech(objects) {
   }
 }
 
-function openLibrary() {
+function openLibrary(startTab = "chars") {
   const modal = document.createElement("div");
   modal.className = "modal";
   modal.innerHTML = `
@@ -369,7 +425,13 @@ function openLibrary() {
   modal.addEventListener("click", (e) => {
     if (e.target === modal) modal.remove();
   });
-  showChars();
+  if (startTab === "backs") {
+    modal.querySelector('[data-tab="backs"]').classList.add("primary");
+    modal.querySelector('[data-tab="chars"]').classList.remove("primary");
+    showBacks();
+  } else {
+    showChars();
+  }
 }
 
 function publishDialog() {
@@ -406,7 +468,44 @@ function publishDialog() {
   });
 }
 
-document.getElementById("btn-library").addEventListener("click", openLibrary);
+document.getElementById("btn-library")?.addEventListener("click", openLibrary);
+document.getElementById("btn-tutorials")?.addEventListener("click", openLibrary);
+document.getElementById("btn-add-backdrop")?.addEventListener("click", () => openLibrary("backs"));
+document.getElementById("backdrop-card")?.addEventListener("click", () => openLibrary("backs"));
+document.getElementById("btn-paint-tab")?.addEventListener("click", () => document.getElementById("btn-paint")?.click());
+document.getElementById("btn-fullscreen")?.addEventListener("click", () => {
+  document.querySelector(".app")?.classList.toggle("stage-big");
+});
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => setEditorTab(btn.dataset.tab));
+});
+document.querySelectorAll("[data-menu]").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = btn.parentElement;
+    const open = menu.classList.contains("open");
+    closeMenus();
+    if (!open) menu.classList.add("open");
+  });
+});
+document.getElementById("btn-add-sprite")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const wrap = e.currentTarget.parentElement;
+  const open = wrap.classList.contains("open");
+  closeMenus();
+  if (!open) wrap.classList.add("open");
+});
+document.getElementById("add-sprite-menu")?.addEventListener("click", (e) => {
+  const add = e.target.closest("[data-add]")?.dataset.add;
+  closeMenus();
+  if (add === "library") openLibrary();
+  else if (add === "paint") document.getElementById("btn-paint")?.click();
+  else if (add) addMesh(add);
+});
+document.addEventListener("click", closeMenus);
+document.querySelectorAll(".menu-drop button").forEach((btn) => {
+  btn.addEventListener("click", closeMenus);
+});
 document.getElementById("btn-export-web")?.addEventListener("click", async () => {
   const project = await api.project();
   project.scripts = blocks.serialize().scripts;

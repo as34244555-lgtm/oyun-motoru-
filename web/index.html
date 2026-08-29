@@ -3,101 +3,166 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BlokMotor — 3D oyun editörü</title>
+  <title>BlokMotor</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;550;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/app.css" />
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
+    <header class="menu-bar">
       <div class="brand">
-        <div class="logo">B</div>
-        <div>
-          <h1>BlokMotor</h1>
-          <p>C++ 3D motor · Scratch+ Unity editör</p>
+        <svg class="scratch-cat" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="22" r="12" fill="#FF8C1A"/>
+          <ellipse cx="12" cy="10" rx="5" ry="7" fill="#FF8C1A"/>
+          <ellipse cx="28" cy="10" rx="5" ry="7" fill="#FF8C1A"/>
+          <ellipse cx="12" cy="10" rx="2.4" ry="3.4" fill="#FFD399"/>
+          <ellipse cx="28" cy="10" rx="2.4" ry="3.4" fill="#FFD399"/>
+          <circle cx="15.5" cy="21" r="2.1" fill="#111"/>
+          <circle cx="24.5" cy="21" r="2.1" fill="#111"/>
+          <circle cx="16" cy="20.4" r="0.6" fill="#fff"/>
+          <circle cx="25" cy="20.4" r="0.6" fill="#fff"/>
+          <ellipse cx="20" cy="25.2" rx="2.2" ry="1.4" fill="#E86A17"/>
+          <path d="M18 26.4 Q20 29 22 26.4" fill="none" stroke="#111" stroke-width="1.1" stroke-linecap="round"/>
+        </svg>
+        <span class="brand-name">BlokMotor</span>
+      </div>
+
+      <div class="menu">
+        <button type="button" class="menu-btn" data-menu="file">Dosya</button>
+        <div class="menu-drop" id="menu-file">
+          <button type="button" id="btn-save">Projeyi kaydet</button>
+          <button type="button" id="btn-load">Yükle</button>
+          <button type="button" id="btn-export-web">Web oyunu</button>
+          <button type="button" id="btn-export-apk">APK / AAB</button>
+          <button type="button" id="btn-publish">Kalıcı site</button>
+          <button type="button" id="btn-reset">Yeni proje</button>
         </div>
       </div>
-      <div class="toolbar">
-        <button class="btn primary" id="btn-play" type="button">▶ Oynat</button>
-        <button class="btn danger" id="btn-stop" type="button" disabled>■ Durdur</button>
-        <span class="play-dot" id="play-dot"></span>
-        <button class="btn" id="btn-library" type="button">Kütüphane</button>
-        <button class="btn" id="btn-paint" type="button">Kostüm çiz</button>
-        <button class="btn" id="btn-cube" type="button">+ Küp</button>
-        <button class="btn" id="btn-sphere" type="button">+ Küre</button>
-        <button class="btn" id="btn-pyramid" type="button">+ Piramit</button>
-        <button class="btn" id="btn-plane" type="button">+ Zemin</button>
-        <button class="btn" id="btn-export-web" type="button">Web oyunu</button>
-        <button class="btn" id="btn-export-apk" type="button">APK / AAB</button>
-        <button class="btn ghost" id="btn-publish" type="button">Kalıcı site</button>
-        <button class="btn ghost" id="btn-save" type="button">Projeyi kaydet</button>
-        <button class="btn ghost" id="btn-load" type="button">Yükle</button>
-        <input id="file-load" type="file" accept="application/json" hidden />
-        <button class="btn ghost" id="btn-reset" type="button">Sahneyi sıfırla</button>
+      <div class="menu">
+        <button type="button" class="menu-btn" data-menu="edit">Düzen</button>
+        <div class="menu-drop" id="menu-edit">
+          <button type="button" id="btn-library">Kukla kütüphanesi</button>
+          <button type="button" id="btn-paint">Kostüm çiz</button>
+          <button type="button" id="btn-cube">Küp ekle</button>
+          <button type="button" id="btn-sphere">Küre ekle</button>
+          <button type="button" id="btn-pyramid">Piramit ekle</button>
+          <button type="button" id="btn-plane">Zemin ekle</button>
+        </div>
+      </div>
+      <button type="button" class="menu-btn" id="btn-tutorials">Kütüphane</button>
+
+      <input class="project-title" id="project-title" value="BlokMotor Projesi" spellcheck="false" />
+
+      <div class="menu-meta">
+        <span id="status-mode">Düzenleme</span>
+        <span>Kukla <b id="status-count">0</b></span>
+        <span>FPS <b id="status-fps">0</b></span>
       </div>
     </header>
 
-    <main class="workspace">
-      <section class="panel hierarchy">
-        <h2>Hiyerarşi</h2>
-        <div class="tree" id="hierarchy"></div>
-      </section>
+    <main class="gui">
+      <section class="editor-column">
+        <nav class="editor-tabs" role="tablist">
+          <button type="button" class="tab active" data-tab="code">Kod</button>
+          <button type="button" class="tab" data-tab="costumes">Kostümler</button>
+          <button type="button" class="tab" data-tab="sounds">Sesler</button>
+        </nav>
 
-      <section class="panel viewport">
-        <h2>Sahne</h2>
-        <div class="viewport-body">
-          <canvas id="view"></canvas>
-          <div class="speech-log" id="speech-log"></div>
-          <div class="viewport-overlay">
-            <span class="chip" id="hint">WASD: kedi · oklar: küre · Space: zıpla · Q/E: kamera · sliders: açı</span>
-          </div>
-          <aside class="camera-dock" id="camera-dock">
-            <div class="camera-dock-title">Oyun kamerası</div>
-            <label>Yaw <b id="cam-yaw-val">45</b><input id="cam-yaw" type="range" min="-180" max="180" step="1" value="45" /></label>
-            <label>Pitch <b id="cam-pitch-val">28</b><input id="cam-pitch" type="range" min="-80" max="80" step="1" value="28" /></label>
-            <label>Mesafe <b id="cam-dist-val">9.2</b><input id="cam-dist" type="range" min="2" max="24" step="0.1" value="9.2" /></label>
-            <label>FOV <b id="cam-fov-val">50</b><input id="cam-fov" type="range" min="25" max="90" step="1" value="50" /></label>
-            <div class="camera-presets">
-              <button type="button" class="btn" data-cam="izometrik">İzo</button>
-              <button type="button" class="btn" data-cam="on">Ön</button>
-              <button type="button" class="btn" data-cam="yan">Yan</button>
-              <button type="button" class="btn" data-cam="ust">Üst</button>
-              <button type="button" class="btn" data-cam="fps">FPS</button>
-            </div>
-          </aside>
-          <div class="engine-preview">
-            <img id="cpu-frame" alt="C++ yazılım renderer çıktısı" />
-            <span>C++ yazılım renderer</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel inspector">
-        <h2>Denetçi</h2>
-        <div class="fields" id="inspector">
-          <div class="empty">Bir nesne seç.</div>
-        </div>
-      </section>
-
-      <section class="panel blocks">
-        <h2>Kod blokları — seçili nesne: <span id="script-target">Kup</span></h2>
-        <div class="blocks-inner">
-          <aside class="palette" id="palette"></aside>
+        <div class="tab-body" id="tab-code">
+          <aside class="categories" id="categories"></aside>
+          <aside class="flyout" id="palette"></aside>
           <div class="scripts" id="scripts"></div>
+        </div>
+
+        <div class="tab-body costumes hidden" id="tab-costumes">
+          <div class="costume-pane">
+            <p class="pane-lead">Seçili kukla: <b id="costume-target">—</b></p>
+            <div class="costume-strip" id="costume-list"></div>
+            <button type="button" class="btn primary" id="btn-paint-tab">Kostüm çiz</button>
+          </div>
+        </div>
+
+        <div class="tab-body sounds hidden" id="tab-sounds">
+          <div class="sound-pane" id="sound-list"></div>
+        </div>
+      </section>
+
+      <section class="stage-column">
+        <div class="stage-header">
+          <div class="stage-controls">
+            <button type="button" class="flag" id="btn-play" title="Yeşil bayrak — başlat" aria-label="Başlat">
+              <svg viewBox="0 0 24 24"><path d="M4 3h3v18H4z"/><path d="M7 4l14 6.2L7 16.4z"/></svg>
+            </button>
+            <button type="button" class="stop" id="btn-stop" title="Durdur" aria-label="Durdur" disabled>
+              <svg viewBox="0 0 24 24"><path d="M8.2 4h7.6L20 8.2v7.6L15.8 20H8.2L4 15.8V8.2z"/></svg>
+            </button>
+            <span class="play-dot" id="play-dot"></span>
+            <span class="stage-target">Sahne · <b id="script-target">—</b></span>
+          </div>
+          <button type="button" class="stage-full" id="btn-fullscreen" title="Sahneyi büyüt">⛶</button>
+        </div>
+
+        <div class="stage-frame">
+          <div class="viewport-body">
+            <canvas id="view"></canvas>
+            <div class="speech-log" id="speech-log"></div>
+            <div class="viewport-overlay">
+              <span class="chip" id="hint">WASD · oklar · Space · Q/E kamera</span>
+            </div>
+            <aside class="camera-dock" id="camera-dock">
+              <div class="camera-dock-title">Kamera</div>
+              <label>Yaw <b id="cam-yaw-val">45</b><input id="cam-yaw" type="range" min="-180" max="180" step="1" value="45" /></label>
+              <label>Pitch <b id="cam-pitch-val">28</b><input id="cam-pitch" type="range" min="-80" max="80" step="1" value="28" /></label>
+              <label>Mesafe <b id="cam-dist-val">9.2</b><input id="cam-dist" type="range" min="2" max="24" step="0.1" value="9.2" /></label>
+              <label>FOV <b id="cam-fov-val">50</b><input id="cam-fov" type="range" min="25" max="90" step="1" value="50" /></label>
+              <div class="camera-presets">
+                <button type="button" class="btn" data-cam="izometrik">İzo</button>
+                <button type="button" class="btn" data-cam="on">Ön</button>
+                <button type="button" class="btn" data-cam="yan">Yan</button>
+                <button type="button" class="btn" data-cam="ust">Üst</button>
+                <button type="button" class="btn" data-cam="fps">FPS</button>
+              </div>
+            </aside>
+            <div class="engine-preview">
+              <img id="cpu-frame" alt="C++ yazılım renderer çıktısı" />
+              <span>C++ yazılım renderer</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sprite-pane">
+          <div class="sprite-info" id="inspector">
+            <div class="empty">Bir kukla seç.</div>
+          </div>
+          <div class="sprite-browser">
+            <div class="sprite-browser-head">
+              <span>Kuklalar</span>
+              <div class="add-wrap">
+                <button type="button" class="add-btn" id="btn-add-sprite" title="Kukla ekle">+</button>
+                <div class="add-menu" id="add-sprite-menu">
+                  <button type="button" data-add="library">Kütüphane</button>
+                  <button type="button" data-add="cube">Küp</button>
+                  <button type="button" data-add="sphere">Küre</button>
+                  <button type="button" data-add="pyramid">Piramit</button>
+                  <button type="button" data-add="paint">Çiz</button>
+                </div>
+              </div>
+            </div>
+            <div class="sprite-list" id="hierarchy"></div>
+          </div>
+          <div class="backdrop-browser">
+            <div class="sprite-browser-head">
+              <span>Dekor</span>
+              <button type="button" class="add-btn" id="btn-add-backdrop" title="Dekor seç">+</button>
+            </div>
+            <div class="backdrop-card" id="backdrop-card">Sahne</div>
+          </div>
         </div>
       </section>
     </main>
-
-    <footer class="status">
-      <span>Durum: <b id="status-mode">Düzenleme</b></span>
-      <span>Nesne: <b id="status-count">0</b></span>
-      <span>FPS: <b id="status-fps">0</b></span>
-      <span>Motor: <b>C++ BlokMotor</b></span>
-    </footer>
   </div>
+
+  <input id="file-load" type="file" accept="application/json" hidden />
 
   <script type="importmap">
     {

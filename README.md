@@ -1,6 +1,6 @@
 # BlokMotor
 
-C++ ile yazılmış, Unity / Godot benzeri sahne editörü olan ve oyunu **Scratch tarzı kod bloklarıyla** kurulan bir 3D oyun motoru.
+C++ ile yazılmış, **Scratch ile aynı düzenli** editörü olan ve oyunu kod bloklarıyla kurulan bir 3D oyun motoru.
 
 Oyunu C++ ile yazmazsın. Motor C++ ile çalışır; sen nesneleri sahneye koyar, blokları birbirine takar, **Oynat** dersin.
 
@@ -36,12 +36,12 @@ Başsız kare (CI / test):
 
 ## Editörde oyun yazmak
 
-1. Soldan bir nesne seç (örnek: **Kup**).
-2. Alttaki paletten **Her kare** olayını ekle.
-3. **döndür** veya **zıpla** gibi bloklara tıkla; seçili scriptin altına eklenir.
+1. Sağ alttan bir kukla seç (örnek: **Kedi**).
+2. Soldan **Olaylar** → **Her kare** bloğunu ekle.
+3. **Hareket** kategorisinden **döndür** veya **zıpla** tıkla.
 4. `eğer` bloğunda tuşu `Space` yap, içine `zıpla` koy.
-5. **Oynat** — Space ile zıpla, ok tuşlarıyla örnek küreyi hareket ettir.
-6. **Durdur** sahneyi başlangıca alır.
+5. Yeşil bayrak — Space ile zıpla, ok tuşlarıyla örnek küreyi hareket ettir.
+6. Kırmızı durdur sahneyi başlangıca alır.
 
 Bloklar C++ sanal makinesinde çalışır. Sağ alttaki küçük görüntü motorun kendi yazılım renderer çıktısıdır.
 
