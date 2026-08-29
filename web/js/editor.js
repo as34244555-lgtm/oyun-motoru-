@@ -103,6 +103,14 @@ function renderHierarchy() {
     item.addEventListener("click", () => selectObject(object.id));
     hierarchyEl.appendChild(item);
   }
+  if (!hierarchyEl.children.length) {
+    const empty = document.createElement("button");
+    empty.type = "button";
+    empty.className = "sprite-empty";
+    empty.textContent = "Kukla ekle";
+    empty.addEventListener("click", () => openLibrary());
+    hierarchyEl.appendChild(empty);
+  }
   statusCount.textContent = String((state.objects || []).filter((o) => o.mesh !== "plane" && o.id !== "ground").length || 0);
   const card = document.getElementById("backdrop-card");
   if (card) {
@@ -497,13 +505,13 @@ document.querySelectorAll("[data-menu]").forEach((btn) => {
   });
 });
 document.getElementById("btn-add-sprite")?.addEventListener("click", (e) => {
+  e.preventDefault();
   e.stopPropagation();
-  const wrap = e.currentTarget.parentElement;
-  const open = wrap.classList.contains("open");
   closeMenus();
-  if (!open) wrap.classList.add("open");
+  openLibrary();
 });
 document.getElementById("add-sprite-menu")?.addEventListener("click", (e) => {
+  e.stopPropagation();
   const add = e.target.closest("[data-add]")?.dataset.add;
   closeMenus();
   if (add === "library") openLibrary();

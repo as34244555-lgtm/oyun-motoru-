@@ -387,7 +387,7 @@ button { cursor: pointer; }
   background: #fff;
   border-radius: 8px;
   box-shadow: var(--shadow);
-  overflow: auto;
+  overflow: visible;
 }
 .sprite-info { padding: 8px; display: grid; gap: 6px; align-content: start; }
 .sprite-browser, .backdrop-browser { display: flex; flex-direction: column; min-width: 0; }
@@ -449,17 +449,28 @@ button { cursor: pointer; }
   font-size: 18px;
   line-height: 1;
 }
+.add-btn:hover { filter: brightness(1.08); }
 .add-menu {
   display: none;
   position: absolute;
   right: 0;
-  bottom: 100%;
+  top: calc(100% + 4px);
   background: #fff;
   border-radius: 8px;
   box-shadow: var(--shadow);
   min-width: 140px;
-  z-index: 20;
+  z-index: 40;
   padding: 6px 0;
+}
+.sprite-empty {
+  grid-column: 1 / -1;
+  border: 2px dashed #c5c8d4;
+  background: #f6f8fc;
+  color: var(--scratch-blue);
+  border-radius: 8px;
+  padding: 18px 8px;
+  font-weight: 700;
+  font-size: 13px;
 }
 .add-wrap.open .add-menu { display: block; }
 .add-menu button {
