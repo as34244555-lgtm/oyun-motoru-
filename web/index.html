@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BlokMotor — 3D oyun editörü</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;550;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">B</div>
+        <div>
+          <h1>BlokMotor</h1>
+          <p>C++ 3D motor · Scratch blokları</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" id="btn-play" type="button">▶ Oynat</button>
+        <button class="btn danger" id="btn-stop" type="button" disabled>■ Durdur</button>
+        <span class="play-dot" id="play-dot"></span>
+        <button class="btn" id="btn-cube" type="button">+ Küp</button>
+        <button class="btn" id="btn-sphere" type="button">+ Küre</button>
+        <button class="btn" id="btn-pyramid" type="button">+ Piramit</button>
+        <button class="btn" id="btn-plane" type="button">+ Zemin</button>
+        <button class="btn ghost" id="btn-reset" type="button">Sahneyi sıfırla</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel hierarchy">
+        <h2>Hiyerarşi</h2>
+        <div class="tree" id="hierarchy"></div>
+      </section>
+
+      <section class="panel viewport">
+        <h2>Sahne</h2>
+        <div class="viewport-body">
+          <canvas id="view"></canvas>
+          <div class="viewport-overlay">
+            <span class="chip" id="hint">Sürükle: döndür · tekerlek: yakınlaş · WASD/oklar/Space: oyun</span>
+          </div>
+          <div class="engine-preview">
+            <img id="cpu-frame" alt="C++ yazılım renderer çıktısı" />
+            <span>C++ yazılım renderer</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel inspector">
+        <h2>Denetçi</h2>
+        <div class="fields" id="inspector">
+          <div class="empty">Bir nesne seç.</div>
+        </div>
+      </section>
+
+      <section class="panel blocks">
+        <h2>Kod blokları — seçili nesne: <span id="script-target">Kup</span></h2>
+        <div class="blocks-inner">
+          <aside class="palette" id="palette"></aside>
+          <div class="scripts" id="scripts"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="status">
+      <span>Durum: <b id="status-mode">Düzenleme</b></span>
+      <span>Nesne: <b id="status-count">0</b></span>
+      <span>FPS: <b id="status-fps">0</b></span>
+      <span>Motor: <b>C++ BlokMotor</b></span>
+    </footer>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="/js/editor.js"></script>
+</body>
+</html>
