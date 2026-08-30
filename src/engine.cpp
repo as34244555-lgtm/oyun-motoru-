@@ -1,0 +1,396 @@
+#include "blokmotor/engine.hpp"
+
+#include <sstream>
+#include <stdexcept>
+
+namespace blok {
+namespace {
+
+int gObjectSerial = 1;
+
+std::string makeId(const std::string& prefix) {
+    std::ostringstream out;
+    out << prefix << '_' << ++gObjectSerial;
+    return out.str();
+}
+
+std::string prettyName(MeshType mesh) {
+    switch (mesh) {
+        case MeshType::Sphere:
+            return "Kure";
+        case MeshType::Plane:
+            return "Zemin";
+        case MeshType::Pyramid:
+            return "Piramit";
+        case MeshType::Sprite:
+            return "Karakter";
+        case MeshType::Character:
+            return "Figuran";
+        case MeshType::Capsule:
+            return "Kapsul";
+        case MeshType::Cube:
+        default:
+            return "Kup";
+    }
+}
+
+GameObject makeObject(MeshType mesh) {
+    GameObject object;
+    object.id = makeId(meshTypeName(mesh));
+    object.name = prettyName(mesh);
+    object.mesh = mesh;
+    object.dynamic = mesh != MeshType::Plane;
+    if (mesh == MeshType::Plane) {
+        object.transform.scale = {10, 1, 10};
+        object.color = {0.22f, 0.34f, 0.28f};
+    } else if (mesh == MeshType::Sphere) {
+        object.color = {0.25f, 0.65f, 0.95f};
+        object.transform.position.y = 0.5f;
+    } else if (mesh == MeshType::Pyramid) {
+        object.color = {0.97f, 0.76f, 0.20f};
+        object.transform.position.y = 0.5f;
+    } else if (mesh == MeshType::Sprite || mesh == MeshType::Character || mesh == MeshType::Capsule) {
+        object.transform.position.y = 0.55f;
+        object.costumes = {{"dur", ""}, {"adim1", ""}, {"adim2", ""}};
+    } else {
+        object.transform.position.y = 0.5f;
+    }
+    return object;
+}
+
+}  // namespace
+
+Engine::Engine() : renderer_(720, 405) { resetToDefault(); }
+
+void Engine::resetToDefault() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    scene_ = Scene::makeDefault();
+    snapshot_ = scene_;
+    playing_ = false;
+    keys_.clear();
+    Json scripts = Json::object();
+    scripts["scripts"] = Json::array();
+    vm_.load(scripts);
+}
+
+Json Engine::sceneJson() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return scene_.toJson();
+}
+
+Json Engine::stateJson() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Json root = scene_.toJson();
+    root["playing"] = playing_;
+    root["runtime"] = vm_.varsJson();
+    return root;
+}
+
+bool Engine::applyScene(const Json& json, std::string& error) {
+    try {
+        Scene next = Scene::fromJson(json);
+        std::lock_guard<std::mutex> lock(mutex_);
+        scene_ = std::move(next);
+        if (!playing_) snapshot_ = scene_;
+        return true;
+    } catch (const std::exception& ex) {
+        error = ex.what();
+        return false;
+    }
+}
+
+Json Engine::addObject(const std::string& meshName) {
+    Json spec = Json::object();
+    spec["mesh"] = meshName;
+    return addObjectFromSpec(spec);
+}
+
+Json Engine::addObjectFromSpec(const Json& spec) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const std::string meshName = spec["mesh"].asString("cube");
+    const bool asPlatform = meshName == "platform";
+    const bool asTrigger = meshName == "trigger";
+    GameObject object = makeObject(meshTypeFromName(asPlatform || asTrigger ? "cube" : meshName));
+    if (asPlatform) {
+        object.name = "Platform";
+        object.dynamic = false;
+        object.transform.scale = {2.2f, 0.28f, 2.2f};
+        object.transform.position.y = 1.0f;
+        object.color = {0.55f, 0.42f, 0.28f};
+    }
+    if (asTrigger) {
+        object.name = "Tetik";
+        object.dynamic = false;
+        object.trigger = true;
+        object.opacity = 0.35f;
+        object.color = {0.25f, 0.85f, 0.75f};
+        object.transform.scale = {1.4f, 1.4f, 1.4f};
+        object.transform.position.y = 0.7f;
+    }
+    if (spec["name"].isString()) object.name = spec["name"].asString();
+    if (spec["catalogId"].isString()) {
+        object.catalogId = spec["catalogId"].asString();
+        object.color = catalogColor(object.catalogId);
+        if (object.mesh == MeshType::Cube || object.mesh == MeshType::Sprite) object.mesh = MeshType::Character;
+    }
+    if (spec["color"].isString()) object.color = Color::fromHex(spec["color"].asString());
+    if (spec["costumes"].isArray()) {
+        object.costumes.clear();
+        for (const auto& c : spec["costumes"].arrayItems()) {
+            object.costumes.push_back({c["name"].asString("kostum"), c["image"].asString()});
+        }
+    }
+    const float offset = static_cast<float>(scene_.objects.size()) * 0.15f;
+    if (object.mesh != MeshType::Plane) {
+        object.transform.position.x += offset;
+        object.transform.position.z += offset * 0.4f;
+    }
+    scene_.add(object);
+    if (!playing_) snapshot_ = scene_;
+    Json out = Json::object();
+    out["id"] = object.id;
+    out["name"] = object.name;
+    return out;
+}
+
+bool Engine::updateObject(const std::string& id, const Json& patch, std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    GameObject* object = scene_.find(id);
+    if (!object) {
+        error = "nesne bulunamadi";
+        return false;
+    }
+    if (patch["name"].isString()) object->name = patch["name"].asString();
+    if (patch["mesh"].isString()) object->mesh = meshTypeFromName(patch["mesh"].asString());
+    if (patch["visible"].isBool()) object->visible = patch["visible"].asBool();
+    if (patch["dynamic"].isBool()) object->dynamic = patch["dynamic"].asBool();
+    if (patch["trigger"].isBool()) object->trigger = patch["trigger"].asBool();
+    if (patch["color"].isString()) object->color = Color::fromHex(patch["color"].asString());
+    if (patch["color"].isObject() && patch["color"]["hex"].isString()) {
+        object->color = Color::fromHex(patch["color"]["hex"].asString());
+    }
+    auto applyVec = [](Vec3& target, const Json& v) {
+        if (!v.isObject()) return;
+        if (v.has("x")) target.x = v["x"].asFloat(target.x);
+        if (v.has("y")) target.y = v["y"].asFloat(target.y);
+        if (v.has("z")) target.z = v["z"].asFloat(target.z);
+    };
+    applyVec(object->transform.position, patch["position"]);
+    applyVec(object->transform.rotation, patch["rotation"]);
+    applyVec(object->transform.scale, patch["scale"]);
+    applyVec(object->velocity, patch["velocity"]);
+    if (patch["catalogId"].isString()) object->catalogId = patch["catalogId"].asString();
+    if (patch["costumeIndex"].isNumber()) object->setCostume(patch["costumeIndex"].asInt());
+    if (patch["opacity"].isNumber()) object->opacity = patch["opacity"].asFloat(1);
+    if (patch["size"].isNumber()) object->size = patch["size"].asFloat(100);
+    if (patch["animating"].isBool()) object->animating = patch["animating"].asBool();
+    if (patch["animFps"].isNumber()) object->animFps = patch["animFps"].asFloat(6);
+    if (patch["animClip"].isString()) object->animClip = patch["animClip"].asString();
+    if (patch["sayText"].isString()) object->sayText = patch["sayText"].asString();
+    if (patch["costumes"].isArray()) {
+        object->costumes.clear();
+        for (const auto& c : patch["costumes"].arrayItems()) {
+            object->costumes.push_back({c["name"].asString("kostum"), c["image"].asString()});
+        }
+        if (object->costumeIndex >= static_cast<int>(object->costumes.size())) object->costumeIndex = 0;
+    }
+    if (!playing_) snapshot_ = scene_;
+    return true;
+}
+
+bool Engine::removeObject(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const bool ok = scene_.remove(id);
+    if (ok && !playing_) snapshot_ = scene_;
+    return ok;
+}
+
+Json Engine::scriptsJson() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return vm_.save();
+}
+
+bool Engine::setScripts(const Json& json, std::string& error) {
+    try {
+        std::lock_guard<std::mutex> lock(mutex_);
+        vm_.load(json);
+        return true;
+    } catch (const std::exception& ex) {
+        error = ex.what();
+        return false;
+    }
+}
+
+void Engine::play() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    snapshot_ = scene_;
+    vm_.resetRuntime();
+    playing_ = true;
+    keys_.clear();
+}
+
+void Engine::stop() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    scene_ = snapshot_;
+    playing_ = false;
+    keys_.clear();
+    vm_.resetRuntime();
+}
+
+bool Engine::playing() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return playing_;
+}
+
+void Engine::setKeys(const std::unordered_set<std::string>& keys) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    keys_ = keys;
+}
+
+Json Engine::cloneObject(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    GameObject* src = scene_.find(id);
+    if (!src) return Json::object();
+    GameObject copy = *src;
+    copy.id.clear();
+    copy.name = src->name + " kopya";
+    copy.isClone = true;
+    copy.cloneOf = src->id;
+    copy.transform.position.x += 0.6f;
+    GameObject& added = scene_.add(copy);
+    const auto saved = vm_.save();
+    Json extra = Json::object();
+    extra["scripts"] = Json::array();
+    for (const auto& script : saved["scripts"].arrayItems()) {
+        if (script["target"].asString() == src->id || script["target"].asString() == src->name) {
+            Json s = script;
+            s["target"] = added.id;
+            extra["scripts"].push(s);
+        }
+    }
+    Json merged = saved;
+    for (const auto& s : extra["scripts"].arrayItems()) merged["scripts"].push(s);
+    vm_.load(merged);
+    Json out = Json::object();
+    out["id"] = added.id;
+    return out;
+}
+
+Json Engine::projectJson() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Json root = scene_.toJson();
+    root["scripts"] = vm_.save()["scripts"];
+    root["runtime"] = vm_.varsJson();
+    return root;
+}
+
+bool Engine::loadProject(const Json& json, std::string& error) {
+    try {
+        Scene next = Scene::fromJson(json);
+        std::lock_guard<std::mutex> lock(mutex_);
+        scene_ = std::move(next);
+        snapshot_ = scene_;
+        playing_ = false;
+        vm_.load(json);
+        return true;
+    } catch (const std::exception& ex) {
+        error = ex.what();
+        return false;
+    }
+}
+
+bool Engine::updateCamera(const Json& patch, std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto applyVec = [](Vec3& target, const Json& v) {
+        if (!v.isObject()) return;
+        if (v.has("x")) target.x = v["x"].asFloat(target.x);
+        if (v.has("y")) target.y = v["y"].asFloat(target.y);
+        if (v.has("z")) target.z = v["z"].asFloat(target.z);
+    };
+    applyVec(scene_.camera.target, patch["target"]);
+    applyVec(scene_.camera.position, patch["position"]);
+    if (patch["fov"].isNumber()) scene_.camera.fov = patch["fov"].asFloat(scene_.camera.fov);
+    if (patch["yaw"].isNumber()) scene_.camera.yaw = patch["yaw"].asFloat(scene_.camera.yaw);
+    if (patch["pitch"].isNumber()) scene_.camera.pitch = patch["pitch"].asFloat(scene_.camera.pitch);
+    if (patch["distance"].isNumber()) scene_.camera.distance = patch["distance"].asFloat(scene_.camera.distance);
+    if (patch["follow"].isString()) scene_.camera.follow = patch["follow"].asString();
+    if (patch["preset"].isString()) {
+        const std::string p = patch["preset"].asString();
+        if (p == "on" || p == "front") {
+            scene_.camera.yaw = 0;
+            scene_.camera.pitch = 8;
+            scene_.camera.distance = 8;
+        } else if (p == "yan" || p == "side") {
+            scene_.camera.yaw = 90;
+            scene_.camera.pitch = 10;
+            scene_.camera.distance = 8;
+        } else if (p == "ust" || p == "top") {
+            scene_.camera.yaw = 0;
+            scene_.camera.pitch = 80;
+            scene_.camera.distance = 12;
+        } else if (p == "fps") {
+            scene_.camera.yaw = 0;
+            scene_.camera.pitch = 5;
+            scene_.camera.distance = 2.2f;
+        } else {
+            scene_.camera.yaw = 45;
+            scene_.camera.pitch = 28;
+            scene_.camera.distance = 9.2f;
+        }
+    }
+    scene_.camera.refreshOrbit();
+    if (!playing_) snapshot_.camera = scene_.camera;
+    (void)error;
+    return true;
+}
+
+bool Engine::setBackdrop(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    scene_.applyBackdrop(id);
+    if (!playing_) snapshot_.applyBackdrop(id);
+    return true;
+}
+
+void Engine::tick(float dt) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!playing_) return;
+    vm_.tick(scene_, dt, keys_);
+    physics_.step(scene_, dt);
+    if (!scene_.camera.follow.empty()) {
+        GameObject* tracked = scene_.find(scene_.camera.follow);
+        if (!tracked) tracked = scene_.findByName(scene_.camera.follow);
+        if (tracked) scene_.camera.target = tracked->transform.position;
+    }
+    scene_.camera.refreshOrbit();
+    const auto pending = scene_.pendingClones;
+    scene_.pendingClones.clear();
+    for (const auto& sourceId : pending) {
+        GameObject* src = scene_.find(sourceId);
+        if (!src) continue;
+        GameObject copy = *src;
+        copy.id.clear();
+        copy.name = src->name + " kopya";
+        copy.isClone = true;
+        copy.cloneOf = src->id;
+        copy.transform.position.x += 0.45f;
+        GameObject& added = scene_.add(copy);
+        Json saved = vm_.save();
+        Json extras = Json::array();
+        for (const auto& script : saved["scripts"].arrayItems()) {
+            if (script["target"].asString() == src->id || script["target"].asString() == src->name) {
+                Json copyScript = script;
+                copyScript["target"] = added.id;
+                extras.push(copyScript);
+            }
+        }
+        for (const auto& item : extras.arrayItems()) saved["scripts"].push(item);
+        vm_.load(saved);
+    }
+}
+
+Image Engine::renderFrame() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return renderer_.render(scene_);
+}
+
+}  // namespace blok

@@ -1,0 +1,16 @@
+build/
+cmake-build-*/
+out/
+.cache/
+.idea/
+.vscode/
+*.o
+*.a
+*.so
+*.user
+.DS_Store
+compile_commands.json
+*.bmp
+*.ppm
+*.png
+!web/**/*.png

@@ -1,0 +1,16 @@
+{
+  "scripts": [
+    {
+      "target": "cube",
+      "hat": "every_frame",
+      "stack": [
+        { "op": "rotate", "args": { "axis": "y", "degrees": "90" } },
+        {
+          "op": "if",
+          "cond": { "op": "key_down", "args": { "key": "Space" } },
+          "then": [{ "op": "jump", "args": { "force": "8" } }]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+name: pages
+on:
+  push:
+    branches: [main, cursor/blokmotor-3d-engine-6e3f]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify static site
+        run: |
+          test -f web/index.html
+          test -f web/player.html
+          test -f web/.nojekyll
+      - name: Publish web/ to gh-pages
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          cp -a web/. "$work/"
+          cd "$work"
+          git init
+          git checkout -B gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish BlokMotor site"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          for attempt in 1 2 3 4; do
+            if git push -f origin gh-pages; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "gh-pages push failed after retries; site files are still valid."
+          exit 1
