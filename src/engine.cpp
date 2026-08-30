@@ -107,7 +107,26 @@ Json Engine::addObject(const std::string& meshName) {
 
 Json Engine::addObjectFromSpec(const Json& spec) {
     std::lock_guard<std::mutex> lock(mutex_);
-    GameObject object = makeObject(meshTypeFromName(spec["mesh"].asString("cube")));
+    const std::string meshName = spec["mesh"].asString("cube");
+    const bool asPlatform = meshName == "platform";
+    const bool asTrigger = meshName == "trigger";
+    GameObject object = makeObject(meshTypeFromName(asPlatform || asTrigger ? "cube" : meshName));
+    if (asPlatform) {
+        object.name = "Platform";
+        object.dynamic = false;
+        object.transform.scale = {2.2f, 0.28f, 2.2f};
+        object.transform.position.y = 1.0f;
+        object.color = {0.55f, 0.42f, 0.28f};
+    }
+    if (asTrigger) {
+        object.name = "Tetik";
+        object.dynamic = false;
+        object.trigger = true;
+        object.opacity = 0.35f;
+        object.color = {0.25f, 0.85f, 0.75f};
+        object.transform.scale = {1.4f, 1.4f, 1.4f};
+        object.transform.position.y = 0.7f;
+    }
     if (spec["name"].isString()) object.name = spec["name"].asString();
     if (spec["catalogId"].isString()) {
         object.catalogId = spec["catalogId"].asString();
@@ -145,6 +164,7 @@ bool Engine::updateObject(const std::string& id, const Json& patch, std::string&
     if (patch["mesh"].isString()) object->mesh = meshTypeFromName(patch["mesh"].asString());
     if (patch["visible"].isBool()) object->visible = patch["visible"].asBool();
     if (patch["dynamic"].isBool()) object->dynamic = patch["dynamic"].asBool();
+    if (patch["trigger"].isBool()) object->trigger = patch["trigger"].asBool();
     if (patch["color"].isString()) object->color = Color::fromHex(patch["color"].asString());
     if (patch["color"].isObject() && patch["color"]["hex"].isString()) {
         object->color = Color::fromHex(patch["color"]["hex"].asString());

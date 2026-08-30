@@ -14,7 +14,10 @@ Oyunu C++ ile yazmazsın. Motor C++ ile çalışır; sen nesneleri sahneye koyar
 - Karakter animasyonları (idle / yürüme / zıplama / el sallama) ve daha dolu 3D dekorlar
 - **Web oyunu**, **APK / AAB** Android projesi ve GitHub Pages kalıcı site
 - Yazılım rasterizer + Three.js görünüm
-- Proje kaydet / yükle
+- Proje kaydet / yükle, **geri al / yinele**, ilk oyun rehberi
+- **Bloklarım**, C şeklinde eğer/sürekli, sürükleyerek sıra değiştirme, beklemenin kaldığı yerden devam etmesi
+- Ses yükleme (.mp3 / .wav), hitbox, platform ve tetik bölge
+- Üç hazır örnek: Kedi zıplar, Top yuvarlanır, Kamera takip
 - Tek binary: `blokmotor` hem motor hem editör sunucusu
 
 ## Derleme
@@ -36,13 +39,13 @@ Başsız kare (CI / test):
 
 ## Editörde oyun yazmak
 
-1. **Kütüphane** veya kukla **+** ile bir karakter ekle.
-2. Kuklayı seç, soldan **Olaylar** → **Her kare** bloğunu ekle.
-3. **Hareket** kategorisinden **döndür** veya **zıpla** tıkla.
-4. `eğer` bloğunda tuşu `Space` yap, içine `zıpla` koy.
-5. Yeşil bayrak ile dene. Kırmızı işaret durdurur.
+1. Açılıştaki **İlk oyun rehberi** veya **Dosya → Örnek: Kedi zıplar**.
+2. **Kütüphane** veya kukla **+** ile bir karakter ekle.
+3. Kuklayı seç, soldan **Olaylar** → **Oyun başlayınca** veya **Her kare**.
+4. **Hareket**ten **zıpla** veya **konumu değiştir**; `eğer` içine bırak.
+5. Yeşil bayrak ile dene. `Ctrl+Z` geri alır.
 
-Açılışta sahne ve kod alanı boştur; kukla ve blokları sen eklersin.
+Açılışta sahne ve kod alanı boştur; kukla ve blokları sen eklersin. **Düzen** menüsünden platform, tetik bölge ve hitbox açılır.
 
 Bloklar C++ sanal makinesinde çalışır. Sağ alttaki küçük görüntü motorun kendi yazılım renderer çıktısıdır.
 
@@ -94,4 +97,4 @@ Kalıcı site: https://cdn.jsdelivr.net/gh/as34244555-lgtm/oyun-motoru-@gh-pages
 
 ## Sonraki adımlar
 
-Bu bir çalışan çekirdek. Üzerine mesh yükleme, ses, daha zengin fizik, kaydet/yükle proje dosyası ve daha fazla blok eklenebilir.
+GLTF mesh içe aktarma ve GitHub Pages’ı repo sahibinin Settings → Pages → **gh-pages / root** ile açması. Debug APK GitHub Actions `android-apk-aab` artifact’ından iner.

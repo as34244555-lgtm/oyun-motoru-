@@ -36,17 +36,30 @@
           <button type="button" id="btn-export-apk">APK / AAB</button>
           <button type="button" id="btn-publish">Kalıcı site</button>
           <button type="button" id="btn-reset">Yeni proje</button>
+          <button type="button" id="btn-ex-kedi">Örnek: Kedi zıplar</button>
+          <button type="button" id="btn-ex-top">Örnek: Top yuvarlanır</button>
+          <button type="button" id="btn-ex-kamera">Örnek: Kamera takip</button>
         </div>
       </div>
       <div class="menu">
         <button type="button" class="menu-btn" data-menu="edit">Düzen</button>
         <div class="menu-drop" id="menu-edit">
+          <button type="button" id="btn-undo">Geri al</button>
+          <button type="button" id="btn-redo">Yinele</button>
           <button type="button" id="btn-library">Kukla kütüphanesi</button>
           <button type="button" id="btn-paint">Kostüm çiz</button>
           <button type="button" id="btn-cube">Küp ekle</button>
           <button type="button" id="btn-sphere">Küre ekle</button>
           <button type="button" id="btn-pyramid">Piramit ekle</button>
           <button type="button" id="btn-plane">Zemin ekle</button>
+          <button type="button" id="add-platform">Platform ekle</button>
+          <button type="button" id="add-trigger">Tetik bölge ekle</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button" class="menu-btn" data-menu="help">Yardım</button>
+        <div class="menu-drop" id="menu-help">
+          <button type="button" id="btn-guide">İlk oyun rehberi</button>
         </div>
       </div>
       <button type="button" class="menu-btn" id="btn-tutorials">Kütüphane</button>
@@ -98,6 +111,7 @@
             </button>
             <span class="play-dot" id="play-dot"></span>
             <span class="stage-target">Sahne · <b id="script-target">—</b></span>
+            <label class="hitbox-toggle"><input type="checkbox" id="chk-hitbox" /> Hitbox</label>
           </div>
           <button type="button" class="stage-full" id="btn-fullscreen" title="Sahneyi büyüt">⛶</button>
         </div>
@@ -144,6 +158,8 @@
                   <button type="button" data-add="cube">Küp</button>
                   <button type="button" data-add="sphere">Küre</button>
                   <button type="button" data-add="pyramid">Piramit</button>
+                  <button type="button" data-add="platform">Platform</button>
+                  <button type="button" data-add="trigger">Tetik</button>
                   <button type="button" data-add="paint">Çiz</button>
                 </div>
               </div>

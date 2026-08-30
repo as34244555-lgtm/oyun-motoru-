@@ -350,7 +350,7 @@ void BlockVM::runBlock(Context& ctx, const Block& block) {
                             op == "list_replace" || op == "list_len_store" || op == "store_sensor" ||
                             op == "store_timer" || op == "store_random" || op == "change_camera_distance" ||
                             op == "set_camera_target" || op == "camera_look_name" || op == "camera_shake" ||
-                            op == "spawn" || op == "set_sky" || op == "play_drum";
+                            op == "spawn" || op == "set_sky" || op == "play_drum" || op == "call_block";
     if (!obj && noTargetOk) {
     } else if (!obj) {
         return;
@@ -777,6 +777,14 @@ void BlockVM::runBlock(Context& ctx, const Block& block) {
         }
     } else if (op == "delete_this") {
         if (obj && ctx.scene) ctx.scene->remove(obj->id);
+    } else if (op == "call_block") {
+        const std::string name = arg(block, "name", "dans");
+        for (auto& script : scripts_) {
+            if (lower(script.hat.op) == "define_block" && arg(script.hat, "name", "") == name) {
+                runStack(ctx, script.stack);
+                break;
+            }
+        }
     } else if (op == "wait" || op == "wait_until_key" || op == "wait_until_var") {
         // handled at script level
     } else if (op == "repeat" || op == "forever") {
@@ -830,11 +838,14 @@ void BlockVM::tick(Scene& scene, float dt, const std::unordered_set<std::string>
 
         const std::string hat = lower(script.hat.op);
         bool run = false;
-        if (hat == "when_start" || hat == "oyun_baslayinca") {
+        if (hat == "define_block") {
+            run = false;
+        } else if (hat == "when_start" || hat == "oyun_baslayinca") {
             if (!script.startDone) {
                 run = true;
                 script.startDone = true;
-            } else if (script.waitLeft > 0) {
+                script.pc = 0;
+            } else if (script.waitLeft > 0 || script.pc < script.stack.size()) {
                 run = true;
             }
         } else if (hat == "every_frame" || hat == "her_kare") {
@@ -864,11 +875,14 @@ void BlockVM::tick(Scene& scene, float dt, const std::unordered_set<std::string>
         if (!run) continue;
         if (script.waitLeft > 0) {
             script.waitLeft -= dt;
-            continue;
+            if (script.waitLeft > 0) continue;
+            script.pc += 1;
         }
+        if ((hat == "every_frame" || hat == "her_kare") && script.pc >= script.stack.size()) script.pc = 0;
 
-        for (const auto& block : script.stack) {
+        for (; script.pc < script.stack.size(); ++script.pc) {
             if (ctx.budget <= 0 || ctx.yielded) break;
+            const auto& block = script.stack[script.pc];
             const std::string bop = lower(block.op);
             if (bop == "wait") {
                 script.waitLeft = argf(block, "seconds", 1);
@@ -883,12 +897,19 @@ void BlockVM::tick(Scene& scene, float dt, const std::unordered_set<std::string>
                 if (it == vars_.end() || it->second < argf(block, "value", 1)) break;
                 continue;
             }
-            if (bop == "stop_this") break;
+            if (bop == "stop_this") {
+                script.pc = script.stack.size();
+                break;
+            }
             if (bop == "stop_all") {
                 ctx.budget = 0;
+                script.pc = script.stack.size();
                 break;
             }
             runBlock(ctx, block);
+        }
+        if ((hat == "every_frame" || hat == "her_kare") && script.pc >= script.stack.size() && script.waitLeft <= 0) {
+            script.pc = 0;
         }
     }
 }

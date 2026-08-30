@@ -75,6 +75,7 @@ struct GameObject {
     std::string animClip = "idle";
     bool isClone = false;
     std::string cloneOf;
+    bool trigger = false;
     bool penDown = false;
     Color penColor{0.1f, 0.2f, 0.9f};
     float penSize = 3;

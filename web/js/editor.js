@@ -5,25 +5,8 @@ import { BACKDROPS, CHARACTERS, characterCostumes, characterKindOf } from "./lib
 import { isometricThumb } from "./characters3d.js";
 import { openPaintEditor } from "./paint.js";
 import { exportAndroidProject, exportWebGame, pagesUrl, siteUrl } from "./export.js";
-
-const NOTES = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88, C5: 523.25 };
-let audioCtx = null;
-function playTone(name, volume = 80) {
-  try {
-    audioCtx = audioCtx || new AudioContext();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = name === "meow" ? "triangle" : name === "boom" ? "sawtooth" : "square";
-    osc.frequency.value = NOTES[name] || (name === "jump" ? 520 : name === "coin" ? 880 : name === "hit" ? 180 : 330);
-    gain.gain.value = Math.max(0.02, volume / 200);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.18);
-  } catch (_) {
-    /* ignore */
-  }
-}
+import { EXAMPLES } from "./examples.js";
+import { addSoundFile, loadSounds, playSound, soundNames, uploadedSounds } from "./sounds.js";
 
 const hierarchyEl = document.getElementById("hierarchy");
 const inspectorEl = document.getElementById("inspector");
@@ -47,10 +30,16 @@ let selectedId = "";
 let savingScripts = false;
 let cameraBusy = false;
 
+function toast(msg) {
+  const hint = document.getElementById("hint");
+  if (hint) hint.textContent = msg;
+}
+
 const blocks = createBlockEditor({
   paletteEl: document.getElementById("palette"),
   scriptsEl: document.getElementById("scripts"),
   catsEl: document.getElementById("categories"),
+  onBeforeChange: () => pushHistory(),
   onChange: async (payload) => {
     if (savingScripts) return;
     savingScripts = true;
@@ -240,6 +229,7 @@ function renderInspector() {
   del.textContent = "Sil";
   del.disabled = !!state.playing || object.id === "ground";
   del.addEventListener("click", async () => {
+    pushHistory();
     await api.removeObject(object.id);
     selectedId = "";
     await refresh();
@@ -273,9 +263,29 @@ function renderCostumeTab() {
 
 function renderSoundTab() {
   const list = document.getElementById("sound-list");
-  if (!list || list.dataset.ready) return;
-  list.dataset.ready = "1";
-  for (const name of ["meow", "jump", "coin", "hit", "win", "boom", "C4", "E4", "G4"]) {
+  if (!list) return;
+  list.innerHTML = "";
+  const lead = document.createElement("p");
+  lead.className = "pane-lead";
+  lead.textContent = "Hazır sesler veya kendi dosyan (.mp3 / .wav).";
+  list.appendChild(lead);
+  const upload = document.createElement("input");
+  upload.type = "file";
+  upload.accept = "audio/*";
+  upload.addEventListener("change", async () => {
+    const file = upload.files?.[0];
+    if (!file) return;
+    const data = await new Promise((resolve) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.readAsDataURL(file);
+    });
+    pushHistory();
+    addSoundFile(file.name, data);
+    renderSoundTab();
+  });
+  list.appendChild(upload);
+  for (const name of soundNames()) {
     const row = document.createElement("div");
     row.className = "sound-item";
     row.innerHTML = `<span>${name}</span>`;
@@ -283,7 +293,7 @@ function renderSoundTab() {
     play.type = "button";
     play.className = "btn primary";
     play.textContent = "Çal";
-    play.addEventListener("click", () => playTone(name, 80));
+    play.addEventListener("click", () => playSound(name, 80));
     row.appendChild(play);
     list.appendChild(row);
   }
@@ -302,6 +312,95 @@ function setEditorTab(tab) {
 
 function closeMenus() {
   document.querySelectorAll(".menu.open, .add-wrap.open").forEach((el) => el.classList.remove("open"));
+}
+
+const history = { past: [], future: [] };
+let historyBusy = false;
+
+function snapshot() {
+  return {
+    state: structuredClone(state),
+    scripts: blocks.serialize(),
+    sounds: uploadedSounds(),
+  };
+}
+
+function pushHistory() {
+  if (historyBusy) return;
+  history.past.push(snapshot());
+  if (history.past.length > 40) history.past.shift();
+  history.future = [];
+}
+
+async function restoreSnap(snap) {
+  historyBusy = true;
+  try {
+    loadSounds(snap.sounds);
+    await api.loadProject({ ...snap.state, scripts: snap.scripts.scripts });
+    blocks.load(snap.scripts);
+    await refresh();
+  } finally {
+    historyBusy = false;
+  }
+}
+
+async function undo() {
+  if (!history.past.length) return;
+  history.future.push(snapshot());
+  await restoreSnap(history.past.pop());
+}
+
+async function redo() {
+  if (!history.future.length) return;
+  history.past.push(snapshot());
+  await restoreSnap(history.future.pop());
+}
+
+async function loadExample(id) {
+  const ex = EXAMPLES.find((e) => e.id === id);
+  if (!ex) return;
+  pushHistory();
+  await api.loadProject(structuredClone(ex.project));
+  blocks.load(ex.project);
+  selectedId = (ex.project.objects.find((o) => o.id !== "ground") || {}).id || "";
+  await refresh();
+  toast(`${ex.name} yüklendi`);
+}
+
+function showGuide(force = false) {
+  if (!force && localStorage.getItem("blokmotor-guide") === "1") return;
+  const old = document.getElementById("guide-modal");
+  if (old) old.remove();
+  const modal = document.createElement("div");
+  modal.id = "guide-modal";
+  modal.className = "modal";
+  modal.innerHTML = `
+    <div class="modal-card">
+      <header>
+        <h3>İlk oyun — 4 adım</h3>
+        <button type="button" class="btn ghost" data-close>Kapat</button>
+      </header>
+      <ol class="guide-steps">
+        <li><b>Kukla ekle</b> — Kuklalar’daki + veya Kütüphane.</li>
+        <li><b>Olay</b> — Olaylar → Oyun başlayınca veya Her kare.</li>
+        <li><b>Hareket</b> — zıpla veya konumu değiştir.</li>
+        <li><b>Oynat</b> — yeşil bayrak. Space ile dene.</li>
+      </ol>
+      <div style="padding:0 16px 16px" class="row">
+        <button type="button" class="btn primary" id="guide-example">Kedi zıplar örneği</button>
+        <button type="button" class="btn" data-close>Boş başla</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => {
+    localStorage.setItem("blokmotor-guide", "1");
+    modal.remove();
+  }));
+  modal.querySelector("#guide-example").addEventListener("click", async () => {
+    localStorage.setItem("blokmotor-guide", "1");
+    modal.remove();
+    await loadExample("kedi-ziplar");
+  });
 }
 
 function setPlaying(playing) {
@@ -347,7 +446,8 @@ async function refresh() {
 }
 
 async function addMesh(mesh) {
-  const created = await api.addObject(mesh);
+  pushHistory();
+  const created = await api.addObject(typeof mesh === "string" ? { mesh } : mesh);
   selectedId = created.id;
   await refresh();
 }
@@ -399,6 +499,7 @@ function openLibrary(startTab = "chars") {
       card.className = "lib-card";
       card.innerHTML = `<div class="thumb">${isometricThumb(ch.hue, characterKindOf(ch.id))}</div><span>${ch.name} · 3D</span>`;
       card.addEventListener("click", async () => {
+        pushHistory();
         const created = await api.addObject({
           mesh: "character",
           name: ch.name,
@@ -463,6 +564,7 @@ function publishDialog() {
         <p>Çalışan kalıcı site: <a href="${siteUrl()}" target="_blank" rel="noreferrer">${siteUrl()}</a></p>
         <p>GitHub Pages (açılınca): <a href="${pagesUrl()}" target="_blank" rel="noreferrer">${pagesUrl()}</a></p>
         <p>Oyunu telefona almak için <b>APK / AAB</b> ile Android projesini indir. Android Studio’da <code>assembleRelease</code> APK, <code>bundleRelease</code> Play Store AAB üretir.</p>
+        <p>Hazır debug APK: GitHub → Actions → <b>android-apk-aab</b> → artifact <code>blokmotor-android</code>.</p>
         <div class="row">
           <button type="button" class="btn primary" id="dl-web">Web oyunu (.html)</button>
           <button type="button" class="btn" id="dl-apk">Android proje (.zip)</button>
@@ -475,11 +577,13 @@ function publishDialog() {
   modal.querySelector("#dl-web").addEventListener("click", async () => {
     const project = await api.project();
     project.scripts = blocks.serialize().scripts;
+    project.sounds = uploadedSounds();
     await exportWebGame(project);
   });
   modal.querySelector("#dl-apk").addEventListener("click", async () => {
     const project = await api.project();
     project.scripts = blocks.serialize().scripts;
+    project.sounds = uploadedSounds();
     await exportAndroidProject(project);
   });
 }
@@ -525,13 +629,24 @@ document.querySelectorAll(".menu-drop button").forEach((btn) => {
 document.getElementById("btn-export-web")?.addEventListener("click", async () => {
   const project = await api.project();
   project.scripts = blocks.serialize().scripts;
+  project.sounds = uploadedSounds();
   await exportWebGame(project);
 });
 document.getElementById("btn-export-apk")?.addEventListener("click", async () => {
   const project = await api.project();
   project.scripts = blocks.serialize().scripts;
+  project.sounds = uploadedSounds();
   await exportAndroidProject(project);
 });
+document.getElementById("btn-undo")?.addEventListener("click", undo);
+document.getElementById("btn-redo")?.addEventListener("click", redo);
+document.getElementById("btn-guide")?.addEventListener("click", () => showGuide(true));
+document.getElementById("btn-ex-kedi")?.addEventListener("click", () => loadExample("kedi-ziplar"));
+document.getElementById("btn-ex-top")?.addEventListener("click", () => loadExample("top-yuvarlanir"));
+document.getElementById("btn-ex-kamera")?.addEventListener("click", () => loadExample("kamera-takip"));
+document.getElementById("add-platform")?.addEventListener("click", () => addMesh("platform"));
+document.getElementById("add-trigger")?.addEventListener("click", () => addMesh("trigger"));
+document.getElementById("chk-hitbox")?.addEventListener("change", (e) => viewport.setHitboxes?.(e.target.checked));
 document.getElementById("btn-publish")?.addEventListener("click", publishDialog);
 document.getElementById("btn-paint").addEventListener("click", () => {
   const object = selected();
@@ -539,6 +654,7 @@ document.getElementById("btn-paint").addEventListener("click", () => {
   openPaintEditor({
     object,
     onSave: async (costumes, index) => {
+      pushHistory();
       await api.updateObject(object.id, { costumes, costumeIndex: index, mesh: object.mesh === "cube" ? "sprite" : object.mesh });
       await refresh();
     },
@@ -547,6 +663,7 @@ document.getElementById("btn-paint").addEventListener("click", () => {
 document.getElementById("btn-save").addEventListener("click", async () => {
   const project = await api.project();
   project.scripts = blocks.serialize().scripts;
+  project.sounds = uploadedSounds();
   const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -558,6 +675,8 @@ document.getElementById("file-load").addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
   const project = JSON.parse(await file.text());
+  pushHistory();
+  if (project.sounds) loadSounds(project.sounds);
   await api.loadProject(project);
   blocks.load(project);
   await refresh();
@@ -567,6 +686,8 @@ document.getElementById("btn-sphere").addEventListener("click", () => addMesh("s
 document.getElementById("btn-pyramid").addEventListener("click", () => addMesh("pyramid"));
 document.getElementById("btn-plane").addEventListener("click", () => addMesh("plane"));
 document.getElementById("btn-reset").addEventListener("click", async () => {
+  pushHistory();
+  loadSounds([]);
   await api.reset();
   const scripts = await api.scripts();
   blocks.load(scripts);
@@ -574,6 +695,17 @@ document.getElementById("btn-reset").addEventListener("click", async () => {
 });
 
 window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ") {
+    e.preventDefault();
+    if (e.shiftKey) redo();
+    else undo();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.code === "KeyY") {
+    e.preventDefault();
+    redo();
+    return;
+  }
   if (e.target.matches("input, select, textarea")) return;
   keys.add(e.code === "Space" ? "Space" : e.code);
   if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
@@ -594,9 +726,9 @@ setInterval(async () => {
       viewport.sync(state);
       statusCount.textContent = String(state.objects?.length || 0);
       renderSpeech(state.objects);
-      if (state.lastSound && state.lastSound !== playTone.last) {
-        playTone.last = state.lastSound;
-        playTone(state.lastSound, state.volume);
+      if (state.lastSound && state.lastSound !== playSound.last) {
+        playSound.last = state.lastSound;
+        playSound(state.lastSound, state.volume);
       }
       syncCameraDock(state.camera);
     } catch (_) {
@@ -678,6 +810,7 @@ async function boot() {
   blocks.load(scripts);
   await refresh();
   syncCameraDock(state.camera);
+  showGuide();
 }
 
 boot().catch((err) => {

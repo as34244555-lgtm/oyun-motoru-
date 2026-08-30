@@ -88,6 +88,8 @@ const WEB_FILES = [
   "js/paint.js",
   "js/engine-js.js",
   "js/export.js",
+  "js/examples.js",
+  "js/sounds.js",
 ];
 
 function androidManifest() {

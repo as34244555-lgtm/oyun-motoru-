@@ -103,6 +103,7 @@ void Physics::step(Scene& scene, float dt) const {
             auto& a = scene.objects[i];
             auto& b = scene.objects[j];
             if (!a.dynamic && !b.dynamic) continue;
+            if (a.trigger || b.trigger) continue;
             if (overlaps(a, b)) separate(a, b);
         }
     }

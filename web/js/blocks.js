@@ -46,7 +46,7 @@ export const DEFS = [
   { op: "next_backdrop", kind: "stack", cat: "looks", cls: "looks", title: "sonraki dekor" },
   { op: "set_layer", kind: "stack", cat: "looks", cls: "looks", title: "katman", fields: [{ key: "value", type: "number", value: "0" }] },
 
-  { op: "play_sound", kind: "stack", cat: "sound", cls: "sound", title: "ses çal", fields: [{ key: "name", type: "select", options: ["meow", "jump", "coin", "hit", "win", "boom"] }] },
+  { op: "play_sound", kind: "stack", cat: "sound", cls: "sound", title: "ses çal", fields: [{ key: "name", type: "text", value: "meow" }] },
   { op: "play_note", kind: "stack", cat: "sound", cls: "sound", title: "nota çal", fields: [{ key: "note", type: "select", options: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"] }] },
   { op: "set_volume", kind: "stack", cat: "sound", cls: "sound", title: "ses düzeyi", fields: [{ key: "value", type: "number", value: "80" }] },
 
@@ -155,6 +155,8 @@ export const DEFS = [
   { op: "camera_shake", kind: "stack", cat: "world", cls: "world", title: "kamera sars", fields: [{ key: "value", type: "number", value: "8" }] },
   { op: "spawn", kind: "stack", cat: "world", cls: "world", title: "nesne oluştur", fields: [{ key: "mesh", type: "select", options: ["cube", "sphere", "pyramid"] }, { key: "x", type: "number", value: "0" }, { key: "y", type: "number", value: "1" }, { key: "z", type: "number", value: "0" }] },
   { op: "delete_this", kind: "stack", cat: "world", cls: "world", title: "beni sil" },
+  { op: "define_block", kind: "hat", cat: "myblocks", cls: "vars", title: "blok tanımla", fields: [{ key: "name", type: "text", value: "dans" }] },
+  { op: "call_block", kind: "stack", cat: "myblocks", cls: "vars", title: "bloğu çalıştır", fields: [{ key: "name", type: "text", value: "dans" }] },
 ];
 
 const CATS = [
@@ -168,6 +170,7 @@ const CATS = [
   { id: "vars", label: "Değişkenler", color: "#FF8C1A" },
   { id: "pen", label: "Kalem", color: "#0FBD8C" },
   { id: "world", label: "Sahne", color: "#0FBD8C" },
+  { id: "myblocks", label: "Bloklarım", color: "#FF6680" },
 ];
 
 function defOf(op) {
@@ -229,6 +232,23 @@ function fieldControl(block, field, onChange) {
   return wrap;
 }
 
+let movingBlock = null;
+let movingDetach = null;
+let beforeMutate = null;
+
+function takeMovedOrNew(dataTransfer) {
+  if (dataTransfer.getData("text/blok-move") === "1" && movingBlock) {
+    const moved = movingBlock;
+    movingDetach?.();
+    movingBlock = null;
+    movingDetach = null;
+    return moved;
+  }
+  const op = dataTransfer.getData("text/blok-op");
+  if (!op || defOf(op).kind === "hat") return null;
+  return defaultBlock(op);
+}
+
 function mouth(block, listKey, onChange) {
   const el = document.createElement("div");
   el.className = "mouth";
@@ -243,6 +263,9 @@ function mouth(block, listKey, onChange) {
     el.appendChild(renderBlock(child, onChange, () => {
       inner.splice(index, 1);
       onChange();
+    }, () => {
+      const i = inner.indexOf(child);
+      if (i >= 0) inner.splice(i, 1);
     }));
   });
   el.addEventListener("dragover", (e) => {
@@ -252,18 +275,30 @@ function mouth(block, listKey, onChange) {
   el.addEventListener("drop", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const op = e.dataTransfer.getData("text/blok-op");
-    if (!op || defOf(op).kind === "hat") return;
-    inner.push(defaultBlock(op));
+    const next = takeMovedOrNew(e.dataTransfer);
+    if (!next) return;
+    beforeMutate?.();
+    inner.push(next);
     onChange();
   });
   return el;
 }
 
-function renderBlock(block, onChange, onRemove) {
+function renderBlock(block, onChange, onRemove, onDetach) {
   const def = defOf(block.op);
   const el = document.createElement("div");
-  el.className = `block ${def.cls}`;
+  el.className = `block ${def.cls}${def.kind === "c" || def.kind === "c2" || def.op === "if" || def.op === "if_else" ? " c-block" : ""}`;
+  el.draggable = def.kind !== "hat";
+  el.addEventListener("dragstart", (e) => {
+    movingBlock = block;
+    movingDetach = onDetach || onRemove;
+    e.dataTransfer.setData("text/blok-op", block.op);
+    e.dataTransfer.setData("text/blok-move", "1");
+  });
+  el.addEventListener("dragend", () => {
+    movingBlock = null;
+    movingDetach = null;
+  });
   const line = document.createElement("div");
   line.className = "line";
   const title = document.createElement("span");
@@ -291,7 +326,7 @@ function renderBlock(block, onChange, onRemove) {
   return el;
 }
 
-export function createBlockEditor({ paletteEl, scriptsEl, catsEl, onChange }) {
+export function createBlockEditor({ paletteEl, scriptsEl, catsEl, onChange, onBeforeChange }) {
   let scripts = [];
   let target = "";
   let query = "";
@@ -301,11 +336,17 @@ export function createBlockEditor({ paletteEl, scriptsEl, catsEl, onChange }) {
     onChange?.({ scripts: clone(scripts) });
   }
 
+  function before() {
+    onBeforeChange?.();
+  }
+  beforeMutate = before;
+
   function visibleScripts() {
     return scripts.filter((s) => !target || s.target === target);
   }
 
   function addBlock(op) {
+    before();
     const def = defOf(op);
     if (def.kind === "hat") {
       scripts.push({ target, hat: { op, args: defaultBlock(op).args || {} }, stack: [] });
@@ -397,27 +438,46 @@ export function createBlockEditor({ paletteEl, scriptsEl, catsEl, onChange }) {
       const hat = { op: typeof script.hat === "string" ? script.hat : script.hat.op, args: script.hat.args || script.hatArgs || {} };
       script.hat = hat;
       card.appendChild(renderBlock(hat, emit, () => {
+        before();
         scripts = scripts.filter((s) => s !== script);
         emit();
         render();
       }));
       (script.stack || []).forEach((block, index) => {
-        card.appendChild(renderBlock(block, () => {
+        const bel = renderBlock(block, () => {
           emit();
           render();
         }, () => {
+          before();
           script.stack.splice(index, 1);
           emit();
           render();
-        }));
+        }, () => {
+          const i = script.stack.indexOf(block);
+          if (i >= 0) script.stack.splice(i, 1);
+        });
+        bel.addEventListener("dragover", (e) => e.preventDefault());
+        bel.addEventListener("drop", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          before();
+          const next = takeMovedOrNew(e.dataTransfer);
+          if (!next) return;
+          const at = Math.min(index, script.stack.length);
+          script.stack.splice(at, 0, next);
+          emit();
+          render();
+        });
+        card.appendChild(bel);
       });
       card.addEventListener("dragover", (e) => e.preventDefault());
       card.addEventListener("drop", (e) => {
         e.preventDefault();
-        const op = e.dataTransfer.getData("text/blok-op");
-        if (!op || defOf(op).kind === "hat") return;
+        before();
+        const next = takeMovedOrNew(e.dataTransfer);
+        if (!next) return;
         script.stack = script.stack || [];
-        script.stack.push(defaultBlock(op));
+        script.stack.push(next);
         emit();
         render();
       });
@@ -427,6 +487,7 @@ export function createBlockEditor({ paletteEl, scriptsEl, catsEl, onChange }) {
       rm.type = "button";
       rm.textContent = "Scripti sil";
       rm.addEventListener("click", () => {
+        before();
         scripts = scripts.filter((s) => s !== script);
         emit();
         render();

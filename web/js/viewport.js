@@ -92,6 +92,7 @@ function createSoftwareViewport(canvas) {
     sync() {},
     fps: () => fps,
     software: true,
+    setHitboxes() {},
   };
 }
 
@@ -146,6 +147,8 @@ function createWebGLViewport(canvas) {
   let lastState = null;
 
   const meshes = new Map();
+  const hitboxes = new Map();
+  let showHitboxes = false;
   let controlsDragging = false;
   controls.addEventListener("start", () => {
     controlsDragging = true;
@@ -196,13 +199,26 @@ function createWebGLViewport(canvas) {
       if (mesh.userData.isCharacter) poseCharacter(mesh, object, clock);
       if (mesh.material) {
         mesh.material.opacity = object.opacity ?? 1;
+        mesh.material.transparent = (object.opacity ?? 1) < 0.99 || !!object.trigger;
         mesh.material.color.setHex(hexColor(object.color?.hex || object.color));
       }
+      let box = hitboxes.get(object.id);
+      if (showHitboxes && object.mesh !== "plane") {
+        if (!box) {
+          box = new THREE.BoxHelper(mesh, object.trigger ? 0x3fd4be : 0xffee55);
+          hitboxes.set(object.id, box);
+          scene.add(box);
+        }
+        box.visible = true;
+        box.update();
+      } else if (box) box.visible = false;
     }
     for (const [id, mesh] of meshes) {
       if (!seen.has(id)) {
         scene.remove(mesh);
         meshes.delete(id);
+        const box = hitboxes.get(id);
+        if (box) { scene.remove(box); hitboxes.delete(id); }
       }
     }
     applyGameCamera(state);
@@ -250,5 +266,12 @@ function createWebGLViewport(canvas) {
   requestAnimationFrame(tick);
   window.addEventListener("resize", resize);
 
-  return { sync, fps: () => fps };
+  return {
+    sync,
+    fps: () => fps,
+    setHitboxes(on) {
+      showHitboxes = !!on;
+      if (lastState) sync(lastState);
+    },
+  };
 }

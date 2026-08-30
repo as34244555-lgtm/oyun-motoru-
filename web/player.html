@@ -27,17 +27,24 @@
   <script type="module">
     import { createJsEngine } from "./js/engine-js.js";
     import { createViewport } from "./js/viewport.js";
+    import { loadSounds, playSound } from "./js/sounds.js";
 
     const engine = createJsEngine();
     const viewport = createViewport(document.getElementById("view"));
     const keys = new Set();
     const embedded = document.getElementById("project-data");
     if (embedded?.textContent.trim()) {
-      await engine.loadProject(JSON.parse(embedded.textContent));
+      const project = JSON.parse(embedded.textContent);
+      if (project.sounds) loadSounds(project.sounds);
+      await engine.loadProject(project);
     } else {
       try {
         const res = await fetch("project.json", { cache: "no-store" });
-        if (res.ok) await engine.loadProject(await res.json());
+        if (res.ok) {
+          const project = await res.json();
+          if (project.sounds) loadSounds(project.sounds);
+          await engine.loadProject(project);
+        }
       } catch (_) { /* default scene */ }
     }
     await engine.play(await engine.scripts());
@@ -52,6 +59,10 @@
       await engine.input([...keys]);
       const state = engine.state();
       viewport.sync(state);
+      if (state.lastSound && state.lastSound !== playSound.last) {
+        playSound.last = state.lastSound;
+        playSound(state.lastSound, state.volume);
+      }
       const speech = document.getElementById("speech");
       speech.innerHTML = "";
       for (const o of state.objects || []) {

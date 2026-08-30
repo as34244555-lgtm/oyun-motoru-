@@ -279,13 +279,42 @@ button { cursor: pointer; }
   font-weight: 700;
 }
 .block input[type="color"] { width: 34px; height: 22px; padding: 0; border-radius: 6px; }
+.block.c-block {
+  padding-bottom: 10px;
+  border-radius: 8px 8px 12px 4px;
+}
+.block.c-block::after {
+  content: "";
+  display: block;
+  height: 10px;
+  margin: 4px 0 0;
+  border-radius: 0 0 8px 8px;
+  background: inherit;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+}
 .mouth {
-  margin: 6px 0 0 16px;
-  min-height: 28px;
-  padding: 6px;
-  border-left: 8px solid rgba(0, 0, 0, 0.12);
+  margin: 6px 0 0 10px;
+  min-height: 36px;
+  padding: 8px 6px 8px 8px;
+  border-left: 14px solid rgba(0, 0, 0, 0.16);
   background: rgba(0, 0, 0, 0.08);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 8px 8px 8px;
+}
+.guide-steps {
+  margin: 0;
+  padding: 8px 24px 8px 36px;
+  display: grid;
+  gap: 10px;
+  line-height: 1.45;
+}
+.guide-steps li { color: var(--text); }
+.hitbox-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #575e75;
+  margin-left: 8px;
 }
 .drop-hint { font-size: 11px; opacity: 0.65; font-weight: 500; }
 .script-tools { display: flex; gap: 6px; margin-top: 4px; }

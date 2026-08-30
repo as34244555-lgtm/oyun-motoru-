@@ -264,6 +264,86 @@ int main() {
         CHECK(std::fabs(vm.varsJson()["vars"]["skor"].asNumber() - 5) < 1e-4);
     }
 
+    {
+        Scene scene;
+        GameObject ball;
+        ball.id = "ball";
+        ball.dynamic = true;
+        ball.transform.position = {0, 0.5f, 0};
+        ball.velocity = {4, 0, 0};
+        GameObject zone;
+        zone.id = "zone";
+        zone.trigger = true;
+        zone.dynamic = false;
+        zone.transform.position = {0.2f, 0.5f, 0};
+        scene.objects.push_back(ball);
+        scene.objects.push_back(zone);
+        Physics physics;
+        const float x0 = scene.objects[0].transform.position.x;
+        physics.step(scene, 1.0f / 30.0f);
+        CHECK(scene.objects[0].transform.position.x > x0);
+        CHECK(scene.objects[0].velocity.x > 3.0f);
+    }
+
+    {
+        Scene scene;
+        GameObject cube;
+        cube.id = "cube";
+        cube.transform.position = {0, 1, 0};
+        scene.objects.push_back(cube);
+        Json root = Json::parse(R"({
+          "scripts":[{
+            "target":"cube",
+            "hat":"when_start",
+            "stack":[
+              {"op":"set_x","args":{"value":"1"}},
+              {"op":"wait","args":{"seconds":"0.5"}},
+              {"op":"set_x","args":{"value":"5"}}
+            ]
+          }]
+        })");
+        BlockVM vm;
+        vm.load(root);
+        vm.tick(scene, 0.1f, {});
+        CHECK(std::fabs(scene.objects[0].transform.position.x - 1) < 1e-3f);
+        for (int i = 0; i < 8; ++i) vm.tick(scene, 0.1f, {});
+        CHECK(std::fabs(scene.objects[0].transform.position.x - 5) < 1e-3f);
+    }
+
+    {
+        Scene scene;
+        GameObject cube;
+        cube.id = "cube";
+        cube.transform.position = {0, 0, 0};
+        scene.objects.push_back(cube);
+        Json root = Json::parse(R"({
+          "scripts":[
+            {"target":"cube","hat":{"op":"define_block","args":{"name":"dans"}},"stack":[{"op":"set_y","args":{"value":"3"}}]},
+            {"target":"cube","hat":"when_start","stack":[{"op":"call_block","args":{"name":"dans"}}]}
+          ]
+        })");
+        BlockVM vm;
+        vm.load(root);
+        vm.tick(scene, 0.016f, {});
+        CHECK(std::fabs(scene.objects[0].transform.position.y - 3) < 1e-3f);
+    }
+
+    {
+        Engine engine;
+        const Json platform = engine.addObject("platform");
+        CHECK(platform["name"].asString() == "Platform");
+        const Json trigger = engine.addObject("trigger");
+        CHECK(trigger["name"].asString() == "Tetik");
+        const Json state = engine.stateJson();
+        bool sawTrigger = false;
+        for (const auto& item : state["objects"].arrayItems()) {
+            if (item["name"].asString() == "Tetik") {
+                sawTrigger = item["trigger"].asBool(false);
+            }
+        }
+        CHECK(sawTrigger);
+    }
+
     std::cout << "blokmotor tests: " << gPassed << " gecti, " << gFailed << " kaldi\n";
     return gFailed == 0 ? 0 : 1;
 }

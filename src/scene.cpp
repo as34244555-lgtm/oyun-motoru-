@@ -313,6 +313,7 @@ Json Scene::toJson() const {
         j["animClip"] = object.animClip;
         j["isClone"] = object.isClone;
         j["cloneOf"] = object.cloneOf;
+        j["trigger"] = object.trigger;
         Json costumes = Json::array();
         for (const auto& costume : object.costumes) {
             Json c = Json::object();
@@ -368,6 +369,7 @@ Scene Scene::fromJson(const Json& json) {
             object.animClip = item["animClip"].asString("idle");
             object.isClone = item["isClone"].asBool(false);
             object.cloneOf = item["cloneOf"].asString();
+            object.trigger = item["trigger"].asBool(false);
             if (item["costumes"].isArray()) {
                 for (const auto& c : item["costumes"].arrayItems()) {
                     object.costumes.push_back({c["name"].asString("kostum"), c["image"].asString()});
