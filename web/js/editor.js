@@ -810,7 +810,16 @@ async function boot() {
   blocks.load(scripts);
   await refresh();
   syncCameraDock(state.camera);
-  showGuide();
+  const params = new URLSearchParams(location.search);
+  const example = params.get("example");
+  const tab = params.get("tab");
+  if (tab) setEditorTab(tab);
+  if (example) {
+    localStorage.setItem("blokmotor-guide", "1");
+    await loadExample(example);
+  } else if (params.get("guide") !== "0") {
+    showGuide();
+  }
 }
 
 boot().catch((err) => {
